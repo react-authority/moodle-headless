@@ -148,17 +148,36 @@ interface MoodleSubmissionStatus {
   lastattempt?: {
     submission?: {
       id: number;
+      userid?: number;
       status: string;
       timemodified: number;
-      timecreated: number;
+      timecreated?: number;
+      plugins?: {
+        type: string;
+        name: string;
+        fileareas?: { area: string; files: { filename: string; fileurl: string; filesize: number }[] }[];
+        editorfields?: { name: string; text: string; format: number }[];
+      }[];
     };
     graded?: boolean;
     gradingstatus?: string;
+    grading?: {
+      grade?: string;
+      gradefordisplay?: string;
+      gradeddate?: number;
+    };
+  };
+  gradingsummary?: {
+    participantcount: number;
+    submissioncount: number;
+    submissionssubmittedcount: number;
+    submissionsneedgradingcount: number;
   };
   feedback?: {
-    grade?: { grade: string };
+    grade?: { grade: string; gradefordisplay?: string };
     gradefordisplay?: string;
     gradeddate?: number;
+    plugins?: { type: string; name: string; fileareas?: any[]; editorfields?: any[] }[];
   };
 }
 
@@ -174,6 +193,8 @@ interface MoodleQuiz {
   grade: number;
   attempts: number;
   sumgrades: number;
+  grademethod?: number;
+  questions?: number;
 }
 
 interface MoodleQuizAttempt {
@@ -181,9 +202,15 @@ interface MoodleQuizAttempt {
   quiz: number;
   userid: number;
   attempt: number;
+  uniqueid?: number;
+  layout?: string;
+  currentpage?: number;
+  preview?: number;
   state: string;
   timestart: number;
   timefinish: number;
+  timemodified?: number;
+  timemodifiedoffline?: number;
   sumgrades?: number;
 }
 
@@ -614,34 +641,6 @@ export async function getQuizzes(courseId?: string): Promise<{
   }
 }
 
-export async function getQuizAttempts(quizId: string): Promise<{
-  id: string;
-  attempt: number;
-  state: string;
-  timestart: number;
-  timefinish: number;
-  grade?: number;
-}[]> {
-  try {
-    const siteInfo = await getSiteInfo();
-    const result = await callMoodleAPI<{ attempts: MoodleQuizAttempt[] }>("mod_quiz_get_user_quiz_attempts", {
-      quizid: Number(quizId),
-      userid: Number(siteInfo.userid),
-    });
-
-    return (result.attempts || []).map((attempt) => ({
-      id: String(attempt.id),
-      attempt: attempt.attempt,
-      state: attempt.state,
-      timestart: attempt.timestart,
-      timefinish: attempt.timefinish,
-      grade: attempt.sumgrades,
-    }));
-  } catch {
-    return [];
-  }
-}
-
 // Forum functions
 export async function getForums(courseId?: string): Promise<{
   id: string;
@@ -666,38 +665,6 @@ export async function getForums(courseId?: string): Promise<{
       intro: forum.intro,
       type: forum.type,
       numdiscussions: forum.numdiscussions,
-    }));
-  } catch {
-    return [];
-  }
-}
-
-export async function getForumDiscussions(forumId: string): Promise<{
-  id: string;
-  name: string;
-  subject: string;
-  message: string;
-  userfullname: string;
-  created: number;
-  modified: number;
-  numreplies: number;
-  pinned: boolean;
-}[]> {
-  try {
-    const result = await callMoodleAPI<{ discussions: MoodleDiscussion[] }>("mod_forum_get_forum_discussions", {
-      forumid: Number(forumId),
-    });
-
-    return (result.discussions || []).map((disc) => ({
-      id: String(disc.id),
-      name: disc.name,
-      subject: disc.subject,
-      message: disc.message,
-      userfullname: disc.userfullname,
-      created: disc.created,
-      modified: disc.modified,
-      numreplies: disc.numreplies,
-      pinned: disc.pinned,
     }));
   } catch {
     return [];
@@ -1012,5 +979,503 @@ export async function viewCourse(courseId: string): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+// ============ QUIZ API ============
+
+interface MoodleQuizQuestion {
+  slot: number;
+  type: string;
+  page: number;
+  html: string;
+  sequencecheck: number;
+  lastactiontime: number;
+  hasautosavedstep: boolean;
+  flagged: boolean;
+  number: number;
+  state: string;
+  status: string;
+  blockedbyprevious: boolean;
+  mark?: string;
+  maxmark?: number;
+}
+
+export interface QuizInfo {
+  id: string;
+  name: string;
+  intro: string;
+  timeOpen: number | null;
+  timeClose: number | null;
+  timeLimit: number;
+  maxGrade: number;
+  attemptsAllowed: number;
+  questionsCount: number;
+}
+
+export interface QuizAttemptData {
+  attemptId: string;
+  state: string;
+  currentPage: number;
+  questions: {
+    slot: number;
+    type: string;
+    html: string;
+    number: number;
+    state: string;
+    flagged: boolean;
+  }[];
+}
+
+export async function getQuizInfo(cmid: string): Promise<QuizInfo | null> {
+  try {
+    const courses = await getCourses();
+    const courseIds = courses.map(c => Number(c.id));
+    
+    const result = await callMoodleAPI<{ quizzes: MoodleQuiz[] }>("mod_quiz_get_quizzes_by_courses", {
+      courseids: courseIds,
+    });
+    
+    const quiz = result.quizzes?.find(q => String(q.coursemodule) === cmid);
+    if (!quiz) return null;
+    
+    return {
+      id: String(quiz.id),
+      name: quiz.name,
+      intro: quiz.intro,
+      timeOpen: quiz.timeopen || null,
+      timeClose: quiz.timeclose || null,
+      timeLimit: quiz.timelimit,
+      maxGrade: quiz.grade,
+      attemptsAllowed: quiz.attempts,
+      questionsCount: quiz.questions || 0,
+    };
+  } catch (e) {
+    console.error("Failed to get quiz info:", e);
+    return null;
+  }
+}
+
+export async function getQuizAttempts(quizId: string): Promise<{
+  attempts: { id: string; attempt: number; state: string; grade?: number; timestart: number; timefinish: number }[];
+} | null> {
+  try {
+    const result = await callMoodleAPI<{ attempts: MoodleQuizAttempt[] }>("mod_quiz_get_user_attempts", {
+      quizid: Number(quizId),
+      status: "all",
+    });
+    
+    return {
+      attempts: (result.attempts || []).map(a => ({
+        id: String(a.id),
+        attempt: a.attempt,
+        state: a.state,
+        grade: a.sumgrades,
+        timestart: a.timestart,
+        timefinish: a.timefinish,
+      })),
+    };
+  } catch (e) {
+    console.error("Failed to get quiz attempts:", e);
+    return null;
+  }
+}
+
+export async function startQuizAttempt(quizId: string): Promise<{ attemptId: string } | null> {
+  try {
+    const result = await callMoodleAPI<{ attempt: MoodleQuizAttempt }>("mod_quiz_start_attempt", {
+      quizid: Number(quizId),
+    });
+    
+    return { attemptId: String(result.attempt.id) };
+  } catch (e) {
+    console.error("Failed to start quiz attempt:", e);
+    return null;
+  }
+}
+
+export async function getQuizAttemptData(attemptId: string, page: number = 0): Promise<QuizAttemptData | null> {
+  try {
+    const result = await callMoodleAPI<{ attempt: MoodleQuizAttempt; questions: MoodleQuizQuestion[] }>("mod_quiz_get_attempt_data", {
+      attemptid: Number(attemptId),
+      page,
+    });
+    
+    return {
+      attemptId: String(result.attempt.id),
+      state: result.attempt.state,
+      currentPage: result.attempt.currentpage || 0,
+      questions: (result.questions || []).map(q => ({
+        slot: q.slot,
+        type: q.type,
+        html: q.html,
+        number: q.number,
+        state: q.state,
+        flagged: q.flagged,
+      })),
+    };
+  } catch (e) {
+    console.error("Failed to get quiz attempt data:", e);
+    return null;
+  }
+}
+
+export async function saveQuizAttempt(attemptId: string, data: { slot: number; name: string; value: string }[]): Promise<boolean> {
+  try {
+    await callMoodleAPI("mod_quiz_save_attempt", {
+      attemptid: Number(attemptId),
+      data,
+    });
+    return true;
+  } catch (e) {
+    console.error("Failed to save quiz attempt:", e);
+    return false;
+  }
+}
+
+export async function finishQuizAttempt(attemptId: string): Promise<boolean> {
+  try {
+    await callMoodleAPI("mod_quiz_process_attempt", {
+      attemptid: Number(attemptId),
+      finishattempt: 1,
+    });
+    return true;
+  } catch (e) {
+    console.error("Failed to finish quiz attempt:", e);
+    return false;
+  }
+}
+
+export async function getQuizAttemptReview(attemptId: string): Promise<{
+  grade?: number;
+  questions: { slot: number; html: string; mark: string; maxmark: number; state: string }[];
+} | null> {
+  try {
+    const result = await callMoodleAPI<{ 
+      attempt: MoodleQuizAttempt;
+      questions: MoodleQuizQuestion[];
+      grade: string;
+    }>("mod_quiz_get_attempt_review", {
+      attemptid: Number(attemptId),
+    });
+    
+    return {
+      grade: result.attempt.sumgrades,
+      questions: (result.questions || []).map(q => ({
+        slot: q.slot,
+        html: q.html,
+        mark: q.mark || "0",
+        maxmark: q.maxmark || 0,
+        state: q.state,
+      })),
+    };
+  } catch (e) {
+    console.error("Failed to get quiz review:", e);
+    return null;
+  }
+}
+
+// ============ ASSIGNMENT API ============
+
+interface MoodleAssignment {
+  id: number;
+  cmid: number;
+  course: number;
+  name: string;
+  intro: string;
+  introformat: number;
+  duedate: number;
+  allowsubmissionsfromdate: number;
+  grade: number;
+  timemodified: number;
+  cutoffdate: number;
+  gradingduedate: number;
+  submissiondrafts: number;
+  requiresubmissionstatement: number;
+  configs?: { plugin: string; subtype: string; name: string; value: string }[];
+}
+
+export interface AssignmentInfo {
+  id: string;
+  cmid: string;
+  name: string;
+  intro: string;
+  dueDate: number | null;
+  cutoffDate: number | null;
+  maxGrade: number;
+  submissionStatus: string;
+  gradeStatus: string | null;
+  grade: string | null;
+  feedback: string | null;
+  submittedFiles: { filename: string; fileurl: string; filesize: number }[];
+  submittedText: string | null;
+}
+
+export async function getAssignmentInfo(cmid: string): Promise<AssignmentInfo | null> {
+  try {
+    const courses = await getCourses();
+    const courseIds = courses.map(c => Number(c.id));
+    
+    // Get assignment details
+    const assignResult = await callMoodleAPI<{ courses: { assignments: MoodleAssignment[] }[] }>("mod_assign_get_assignments", {
+      courseids: courseIds,
+    });
+    
+    let assignment: MoodleAssignment | undefined;
+    for (const course of assignResult.courses || []) {
+      assignment = course.assignments?.find(a => String(a.cmid) === cmid);
+      if (assignment) break;
+    }
+    
+    if (!assignment) return null;
+    
+    // Get submission status
+    let submissionStatus: MoodleSubmissionStatus | null = null;
+    try {
+      submissionStatus = await callMoodleAPI<MoodleSubmissionStatus>("mod_assign_get_submission_status", {
+        assignid: assignment.id,
+      });
+    } catch {
+      // Submission status might fail if user hasn't submitted
+    }
+    
+    const submission = submissionStatus?.lastattempt?.submission;
+    const grading = submissionStatus?.lastattempt?.grading;
+    const feedback = submissionStatus?.feedback;
+    
+    // Extract submitted files
+    let submittedFiles: { filename: string; fileurl: string; filesize: number }[] = [];
+    let submittedText: string | null = null;
+    
+    if (submission?.plugins) {
+      for (const plugin of submission.plugins) {
+        if (plugin.fileareas) {
+          for (const area of plugin.fileareas) {
+            submittedFiles.push(...(area.files || []));
+          }
+        }
+        if (plugin.editorfields) {
+          for (const field of plugin.editorfields) {
+            if (field.text) {
+              submittedText = field.text;
+            }
+          }
+        }
+      }
+    }
+    
+    return {
+      id: String(assignment.id),
+      cmid: String(assignment.cmid),
+      name: assignment.name,
+      intro: assignment.intro,
+      dueDate: assignment.duedate || null,
+      cutoffDate: assignment.cutoffdate || null,
+      maxGrade: assignment.grade,
+      submissionStatus: submission?.status || "nosubmission",
+      gradeStatus: grading?.gradefordisplay || null,
+      grade: feedback?.grade?.gradefordisplay || null,
+      feedback: null,
+      submittedFiles: submittedFiles.map(f => ({
+        filename: f.filename,
+        fileurl: f.fileurl + `?token=${MOODLE_TOKEN}`,
+        filesize: f.filesize,
+      })),
+      submittedText,
+    };
+  } catch (e) {
+    console.error("Failed to get assignment info:", e);
+    return null;
+  }
+}
+
+// ============ FORUM API ============
+
+interface MoodleForum {
+  id: number;
+  course: number;
+  type: string;
+  name: string;
+  intro: string;
+  cmid: number;
+}
+
+interface MoodleDiscussion {
+  id: number;
+  name: string;
+  firstpostid: number;
+  userid: number;
+  userfullname: string;
+  userpictureurl: string;
+  usermodified: number;
+  usermodifiedfullname: string;
+  usermodifiedpictureurl: string;
+  message: string;
+  timemodified: number;
+  numreplies: number;
+  numunread: number;
+  pinned: boolean;
+  locked: boolean;
+  starred: boolean;
+}
+
+interface MoodlePost {
+  id: number;
+  discussionid: number;
+  parentid: number | null;
+  userid: number;
+  userfullname: string;
+  userpictureurl: string;
+  subject: string;
+  message: string;
+  messageplain: string;
+  created: number;
+  modified: number;
+  hasparent: boolean;
+  isdeleted: boolean;
+  isprivatereply: boolean;
+  haswordcount: boolean;
+  wordcount: number;
+  capabilities: { reply: boolean; delete: boolean; edit: boolean };
+}
+
+export interface ForumInfo {
+  id: string;
+  cmid: string;
+  name: string;
+  intro: string;
+  type: string;
+}
+
+export interface ForumDiscussion {
+  id: string;
+  name: string;
+  authorName: string;
+  authorAvatar: string;
+  message: string;
+  timeModified: number;
+  numReplies: number;
+  numUnread: number;
+  pinned: boolean;
+  locked: boolean;
+}
+
+export interface ForumPost {
+  id: string;
+  discussionId: string;
+  parentId: string | null;
+  authorName: string;
+  authorAvatar: string;
+  subject: string;
+  message: string;
+  created: number;
+  modified: number;
+  canReply: boolean;
+}
+
+export async function getForumInfo(cmid: string): Promise<ForumInfo | null> {
+  try {
+    const courses = await getCourses();
+    const courseIds = courses.map(c => Number(c.id));
+    
+    const result = await callMoodleAPI<{ forums: MoodleForum[] }>("mod_forum_get_forums_by_courses", {
+      courseids: courseIds,
+    });
+    
+    const forum = result.forums?.find(f => String(f.cmid) === cmid);
+    if (!forum) return null;
+    
+    return {
+      id: String(forum.id),
+      cmid: String(forum.cmid),
+      name: forum.name,
+      intro: forum.intro,
+      type: forum.type,
+    };
+  } catch (e) {
+    console.error("Failed to get forum info:", e);
+    return null;
+  }
+}
+
+export async function getForumDiscussions(forumId: string): Promise<ForumDiscussion[]> {
+  try {
+    const result = await callMoodleAPI<{ discussions: MoodleDiscussion[] }>("mod_forum_get_forum_discussions", {
+      forumid: Number(forumId),
+      sortby: "timemodified",
+      sortdirection: "DESC",
+    });
+    
+    return (result.discussions || []).map(d => ({
+      id: String(d.id),
+      name: d.name,
+      authorName: d.userfullname,
+      authorAvatar: d.userpictureurl,
+      message: d.message,
+      timeModified: d.timemodified,
+      numReplies: d.numreplies,
+      numUnread: d.numunread,
+      pinned: d.pinned,
+      locked: d.locked,
+    }));
+  } catch (e) {
+    console.error("Failed to get forum discussions:", e);
+    return [];
+  }
+}
+
+export async function getForumDiscussionPosts(discussionId: string): Promise<ForumPost[]> {
+  try {
+    const result = await callMoodleAPI<{ posts: MoodlePost[] }>("mod_forum_get_discussion_posts", {
+      discussionid: Number(discussionId),
+      sortby: "created",
+      sortdirection: "ASC",
+    });
+    
+    return (result.posts || []).map(p => ({
+      id: String(p.id),
+      discussionId: String(p.discussionid),
+      parentId: p.parentid ? String(p.parentid) : null,
+      authorName: p.userfullname,
+      authorAvatar: p.userpictureurl,
+      subject: p.subject,
+      message: p.message,
+      created: p.created,
+      modified: p.modified,
+      canReply: p.capabilities?.reply || false,
+    }));
+  } catch (e) {
+    console.error("Failed to get discussion posts:", e);
+    return [];
+  }
+}
+
+export async function addForumDiscussion(forumId: string, subject: string, message: string): Promise<{ discussionId: string } | null> {
+  try {
+    const result = await callMoodleAPI<{ discussionid: number; postid: number }>("mod_forum_add_discussion", {
+      forumid: Number(forumId),
+      subject,
+      message,
+    });
+    
+    return { discussionId: String(result.discussionid) };
+  } catch (e) {
+    console.error("Failed to add discussion:", e);
+    return null;
+  }
+}
+
+export async function addForumPost(discussionId: string, parentId: string, subject: string, message: string): Promise<{ postId: string } | null> {
+  try {
+    const result = await callMoodleAPI<{ postid: number }>("mod_forum_add_discussion_post", {
+      postid: Number(parentId),
+      subject,
+      message,
+    });
+    
+    return { postId: String(result.postid) };
+  } catch (e) {
+    console.error("Failed to add post:", e);
+    return null;
   }
 }

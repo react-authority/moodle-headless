@@ -250,5 +250,181 @@ export async function registerRoutes(
     }
   });
 
+  // ============ QUIZ API ROUTES ============
+
+  // Get quiz info
+  app.get("/api/quiz/:cmid", async (req, res) => {
+    try {
+      const { getQuizInfo } = await import("./moodle-client");
+      const quiz = await getQuizInfo(req.params.cmid);
+      if (!quiz) {
+        return res.status(404).json({ error: "Quiz not found" });
+      }
+      res.json(quiz);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get quiz" });
+    }
+  });
+
+  // Get quiz attempts
+  app.get("/api/quiz/:quizId/attempts", async (req, res) => {
+    try {
+      const { getQuizAttempts } = await import("./moodle-client");
+      const attempts = await getQuizAttempts(req.params.quizId);
+      res.json(attempts || { attempts: [] });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get quiz attempts" });
+    }
+  });
+
+  // Start quiz attempt
+  app.post("/api/quiz/:quizId/start", async (req, res) => {
+    try {
+      const { startQuizAttempt } = await import("./moodle-client");
+      const result = await startQuizAttempt(req.params.quizId);
+      if (!result) {
+        return res.status(400).json({ error: "Failed to start quiz attempt" });
+      }
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to start quiz attempt" });
+    }
+  });
+
+  // Get quiz attempt data
+  app.get("/api/quiz/attempt/:attemptId", async (req, res) => {
+    try {
+      const { getQuizAttemptData } = await import("./moodle-client");
+      const page = parseInt(req.query.page as string) || 0;
+      const data = await getQuizAttemptData(req.params.attemptId, page);
+      if (!data) {
+        return res.status(404).json({ error: "Attempt not found" });
+      }
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get attempt data" });
+    }
+  });
+
+  // Save quiz answers
+  app.post("/api/quiz/attempt/:attemptId/save", async (req, res) => {
+    try {
+      const { saveQuizAttempt } = await import("./moodle-client");
+      const success = await saveQuizAttempt(req.params.attemptId, req.body.data);
+      res.json({ success });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save attempt" });
+    }
+  });
+
+  // Finish quiz attempt
+  app.post("/api/quiz/attempt/:attemptId/finish", async (req, res) => {
+    try {
+      const { finishQuizAttempt } = await import("./moodle-client");
+      const success = await finishQuizAttempt(req.params.attemptId);
+      res.json({ success });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to finish attempt" });
+    }
+  });
+
+  // Get quiz attempt review
+  app.get("/api/quiz/attempt/:attemptId/review", async (req, res) => {
+    try {
+      const { getQuizAttemptReview } = await import("./moodle-client");
+      const review = await getQuizAttemptReview(req.params.attemptId);
+      if (!review) {
+        return res.status(404).json({ error: "Review not found" });
+      }
+      res.json(review);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get review" });
+    }
+  });
+
+  // ============ ASSIGNMENT API ROUTES ============
+
+  // Get assignment info
+  app.get("/api/assignment/:cmid", async (req, res) => {
+    try {
+      const { getAssignmentInfo } = await import("./moodle-client");
+      const assignment = await getAssignmentInfo(req.params.cmid);
+      if (!assignment) {
+        return res.status(404).json({ error: "Assignment not found" });
+      }
+      res.json(assignment);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get assignment" });
+    }
+  });
+
+  // ============ FORUM API ROUTES ============
+
+  // Get forum info
+  app.get("/api/forum/:cmid", async (req, res) => {
+    try {
+      const { getForumInfo } = await import("./moodle-client");
+      const forum = await getForumInfo(req.params.cmid);
+      if (!forum) {
+        return res.status(404).json({ error: "Forum not found" });
+      }
+      res.json(forum);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get forum" });
+    }
+  });
+
+  // Get forum discussions
+  app.get("/api/forum/:forumId/discussions", async (req, res) => {
+    try {
+      const { getForumDiscussions } = await import("./moodle-client");
+      const discussions = await getForumDiscussions(req.params.forumId);
+      res.json(discussions);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get discussions" });
+    }
+  });
+
+  // Get discussion posts
+  app.get("/api/forum/discussion/:discussionId/posts", async (req, res) => {
+    try {
+      const { getForumDiscussionPosts } = await import("./moodle-client");
+      const posts = await getForumDiscussionPosts(req.params.discussionId);
+      res.json(posts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get posts" });
+    }
+  });
+
+  // Add discussion
+  app.post("/api/forum/:forumId/discussions", async (req, res) => {
+    try {
+      const { addForumDiscussion } = await import("./moodle-client");
+      const { subject, message } = req.body;
+      const result = await addForumDiscussion(req.params.forumId, subject, message);
+      if (!result) {
+        return res.status(400).json({ error: "Failed to add discussion" });
+      }
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to add discussion" });
+    }
+  });
+
+  // Add post to discussion
+  app.post("/api/forum/discussion/:discussionId/posts", async (req, res) => {
+    try {
+      const { addForumPost } = await import("./moodle-client");
+      const { parentId, subject, message } = req.body;
+      const result = await addForumPost(req.params.discussionId, parentId, subject, message);
+      if (!result) {
+        return res.status(400).json({ error: "Failed to add post" });
+      }
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to add post" });
+    }
+  });
+
   return httpServer;
 }

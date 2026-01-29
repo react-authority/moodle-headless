@@ -17,6 +17,9 @@ import {
   AlertCircle,
 } from "lucide-react";
 import type { Activity } from "@shared/schema";
+import { QuizViewer } from "./quiz-viewer";
+import { AssignmentViewer } from "./assignment-viewer";
+import { ForumViewer } from "./forum-viewer";
 
 interface ActivityViewerProps {
   activity: Activity | null;
@@ -35,7 +38,8 @@ interface ModuleContent {
 }
 
 const supportedModules = ["page", "resource", "url", "label"];
-const embeddableModules = ["quiz", "assign", "forum", "book", "choice", "feedback", "lesson", "scorm", "h5pactivity"];
+const nativeModules = ["quiz", "assign", "forum"];
+const embeddableModules = ["book", "choice", "feedback", "lesson", "scorm", "h5pactivity"];
 
 const activityLabels: Record<string, string> = {
   assign: "Assignment",
@@ -63,6 +67,7 @@ const activityLabels: Record<string, string> = {
 
 export function ActivityViewer({ activity, open, onOpenChange }: ActivityViewerProps) {
   const isSupported = activity ? supportedModules.includes(activity.modname) : false;
+  const isNative = activity ? nativeModules.includes(activity.modname) : false;
   const isEmbeddable = activity ? embeddableModules.includes(activity.modname) : false;
 
   const { data: content, isLoading, error } = useQuery<ModuleContent>({
@@ -98,6 +103,18 @@ export function ActivityViewer({ activity, open, onOpenChange }: ActivityViewerP
 
   const renderContent = () => {
     if (!activity) return null;
+
+    // For native interactive content, use dedicated components
+    if (isNative) {
+      switch (activity.modname) {
+        case "quiz":
+          return <QuizViewer cmid={activity.id} activityUrl={activity.url} />;
+        case "assign":
+          return <AssignmentViewer cmid={activity.id} activityUrl={activity.url} />;
+        case "forum":
+          return <ForumViewer cmid={activity.id} activityUrl={activity.url} />;
+      }
+    }
 
     // For embeddable interactive content, show in iframe
     if (isEmbeddable && hasExternalUrl) {
@@ -299,7 +316,7 @@ export function ActivityViewer({ activity, open, onOpenChange }: ActivityViewerP
     }
   };
 
-  const dialogSize = isEmbeddable ? "max-w-5xl" : "max-w-2xl";
+  const dialogSize = (isEmbeddable || isNative) ? "max-w-4xl" : "max-w-2xl";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
