@@ -27,6 +27,81 @@ export interface IStorage {
     averageGrade: number;
     upcomingDeadlines: number;
   }>;
+  getAssignments(courseId?: string): Promise<{
+    id: string;
+    courseId: string;
+    name: string;
+    intro: string;
+    duedate: number;
+    allowsubmissionsfromdate: number;
+    grade: number;
+  }[]>;
+  getAssignmentSubmissionStatus(assignId: string): Promise<{
+    submitted: boolean;
+    graded: boolean;
+    gradingStatus?: string;
+    grade?: string;
+    submissionTime?: number;
+  } | null>;
+  getQuizzes(courseId?: string): Promise<{
+    id: string;
+    courseId: string;
+    name: string;
+    intro: string;
+    timeopen: number;
+    timeclose: number;
+    timelimit: number;
+    grade: number;
+    attempts: number;
+  }[]>;
+  getQuizAttempts(quizId: string): Promise<{
+    id: string;
+    attempt: number;
+    state: string;
+    timestart: number;
+    timefinish: number;
+    grade?: number;
+  }[]>;
+  getForums(courseId?: string): Promise<{
+    id: string;
+    courseId: string;
+    name: string;
+    intro: string;
+    type: string;
+    numdiscussions: number;
+  }[]>;
+  getForumDiscussions(forumId: string): Promise<{
+    id: string;
+    name: string;
+    subject: string;
+    message: string;
+    userfullname: string;
+    created: number;
+    modified: number;
+    numreplies: number;
+    pinned: boolean;
+  }[]>;
+  getNotifications(): Promise<{
+    id: string;
+    subject: string;
+    text: string;
+    timecreated: number;
+    read: boolean;
+    component: string;
+    contexturl: string;
+    userfromfullname: string;
+  }[]>;
+  getUnreadNotificationCount(): Promise<number>;
+  getUserBadges(): Promise<{
+    id: string;
+    name: string;
+    description: string;
+    badgeurl: string;
+    issuername: string;
+    dateissued: number;
+  }[]>;
+  updateActivityCompletion(cmid: string, completed: boolean): Promise<boolean>;
+  getConnectionStatus(): { connected: boolean; siteUrl: string };
 }
 
 const demoUser: User = {
@@ -221,6 +296,83 @@ class MoodleStorage implements IStorage {
       completedActivities: completed.length,
       averageGrade: avgGrade,
       upcomingDeadlines: upcoming.length,
+    };
+  }
+
+  async getAssignments(courseId?: string) {
+    if (moodleClient.isConfigured()) {
+      return moodleClient.getAssignments(courseId);
+    }
+    return [];
+  }
+
+  async getAssignmentSubmissionStatus(assignId: string) {
+    if (moodleClient.isConfigured()) {
+      return moodleClient.getAssignmentSubmissionStatus(assignId);
+    }
+    return null;
+  }
+
+  async getQuizzes(courseId?: string) {
+    if (moodleClient.isConfigured()) {
+      return moodleClient.getQuizzes(courseId);
+    }
+    return [];
+  }
+
+  async getQuizAttempts(quizId: string) {
+    if (moodleClient.isConfigured()) {
+      return moodleClient.getQuizAttempts(quizId);
+    }
+    return [];
+  }
+
+  async getForums(courseId?: string) {
+    if (moodleClient.isConfigured()) {
+      return moodleClient.getForums(courseId);
+    }
+    return [];
+  }
+
+  async getForumDiscussions(forumId: string) {
+    if (moodleClient.isConfigured()) {
+      return moodleClient.getForumDiscussions(forumId);
+    }
+    return [];
+  }
+
+  async getNotifications() {
+    if (moodleClient.isConfigured()) {
+      return moodleClient.getNotifications();
+    }
+    return [];
+  }
+
+  async getUnreadNotificationCount() {
+    if (moodleClient.isConfigured()) {
+      return moodleClient.getUnreadNotificationCount();
+    }
+    return 0;
+  }
+
+  async getUserBadges() {
+    if (moodleClient.isConfigured()) {
+      return moodleClient.getUserBadges();
+    }
+    return [];
+  }
+
+  async updateActivityCompletion(cmid: string, completed: boolean) {
+    if (moodleClient.isConfigured()) {
+      return moodleClient.updateActivityCompletion(cmid, completed);
+    }
+    return false;
+  }
+
+  getConnectionStatus() {
+    return {
+      connected: moodleClient.isConfigured(),
+      siteUrl: moodleClient.getMoodleUrl(),
     };
   }
 }

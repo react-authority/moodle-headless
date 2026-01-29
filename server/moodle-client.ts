@@ -12,13 +12,6 @@ import type {
 const MOODLE_URL = process.env.MOODLE_URL || "";
 const MOODLE_TOKEN = process.env.MOODLE_TOKEN || "";
 
-interface MoodleResponse<T> {
-  data?: T;
-  exception?: string;
-  errorcode?: string;
-  message?: string;
-}
-
 async function callMoodleAPI<T>(wsfunction: string, params: Record<string, unknown> = {}): Promise<T> {
   const url = new URL(`${MOODLE_URL}/webservice/rest/server.php`);
   url.searchParams.set("wstoken", MOODLE_TOKEN);
@@ -54,6 +47,10 @@ async function callMoodleAPI<T>(wsfunction: string, params: Record<string, unkno
 
 export function isConfigured(): boolean {
   return Boolean(MOODLE_URL && MOODLE_TOKEN);
+}
+
+export function getMoodleUrl(): string {
+  return MOODLE_URL;
 }
 
 interface MoodleSiteInfo {
@@ -97,6 +94,8 @@ interface MoodleCourseContent {
     dates?: { label: string; timestamp: number }[];
     grade?: number;
     grademax?: number;
+    url?: string;
+    instance?: number;
   }[];
 }
 
@@ -130,6 +129,127 @@ interface MoodleCategory {
   name: string;
   description?: string;
   coursecount: number;
+}
+
+interface MoodleAssignment {
+  id: number;
+  cmid: number;
+  course: number;
+  name: string;
+  intro: string;
+  duedate: number;
+  allowsubmissionsfromdate: number;
+  cutoffdate: number;
+  grade: number;
+  introattachments?: { filename: string; fileurl: string }[];
+}
+
+interface MoodleSubmissionStatus {
+  lastattempt?: {
+    submission?: {
+      id: number;
+      status: string;
+      timemodified: number;
+      timecreated: number;
+    };
+    graded?: boolean;
+    gradingstatus?: string;
+  };
+  feedback?: {
+    grade?: { grade: string };
+    gradefordisplay?: string;
+    gradeddate?: number;
+  };
+}
+
+interface MoodleQuiz {
+  id: number;
+  coursemodule: number;
+  course: number;
+  name: string;
+  intro: string;
+  timeopen: number;
+  timeclose: number;
+  timelimit: number;
+  grade: number;
+  attempts: number;
+  sumgrades: number;
+}
+
+interface MoodleQuizAttempt {
+  id: number;
+  quiz: number;
+  userid: number;
+  attempt: number;
+  state: string;
+  timestart: number;
+  timefinish: number;
+  sumgrades?: number;
+}
+
+interface MoodleForum {
+  id: number;
+  course: number;
+  name: string;
+  intro: string;
+  type: string;
+  numdiscussions: number;
+}
+
+interface MoodleDiscussion {
+  id: number;
+  name: string;
+  subject: string;
+  message: string;
+  userid: number;
+  userfullname: string;
+  created: number;
+  modified: number;
+  numreplies: number;
+  pinned: boolean;
+}
+
+interface MoodleMessage {
+  id: number;
+  useridfrom: number;
+  useridto: number;
+  subject?: string;
+  text: string;
+  fullmessage?: string;
+  fullmessageformat?: number;
+  fullmessagehtml?: string;
+  smallmessage?: string;
+  notification?: number;
+  timecreated: number;
+  timeread?: number;
+}
+
+interface MoodleBadge {
+  id: number;
+  name: string;
+  description: string;
+  badgeurl: string;
+  issuername: string;
+  dateissued: number;
+  dateexpire?: number;
+}
+
+interface MoodleNotification {
+  id: number;
+  useridfrom: number;
+  useridto: number;
+  subject: string;
+  shortenedsubject: string;
+  text: string;
+  fullmessage: string;
+  fullmessagehtml: string;
+  timecreated: number;
+  timeread: number | null;
+  read: boolean;
+  component: string;
+  contexturl: string;
+  contexturlname: string;
+  userfromfullname: string;
 }
 
 export async function getSiteInfo(): Promise<SiteInfo> {
@@ -248,6 +368,7 @@ export async function getCourseActivities(courseId: string): Promise<Activity[]>
         description: mod.description || "",
         visible: mod.visible === 1,
         position: activities.filter((a) => a.sectionid === String(section.id)).length,
+        url: mod.url,
         duedate: dueDate,
         completed: isCompleted,
         grade: mod.grade,
@@ -386,4 +507,320 @@ export async function getStats(): Promise<{
     averageGrade,
     upcomingDeadlines: upcomingActivities.length,
   };
+}
+
+// Assignment functions
+export async function getAssignments(courseId?: string): Promise<{
+  id: string;
+  courseId: string;
+  name: string;
+  intro: string;
+  duedate: number;
+  allowsubmissionsfromdate: number;
+  grade: number;
+}[]> {
+  try {
+    const params: Record<string, unknown> = {};
+    if (courseId) {
+      params.courseids = [Number(courseId)];
+    }
+
+    const result = await callMoodleAPI<{ courses: { id: number; assignments: MoodleAssignment[] }[] }>(
+      "mod_assign_get_assignments",
+      params
+    );
+
+    const assignments: ReturnType<typeof getAssignments> extends Promise<infer T> ? T : never = [];
+
+    for (const course of result.courses || []) {
+      for (const assign of course.assignments || []) {
+        assignments.push({
+          id: String(assign.id),
+          courseId: String(course.id),
+          name: assign.name,
+          intro: assign.intro,
+          duedate: assign.duedate,
+          allowsubmissionsfromdate: assign.allowsubmissionsfromdate,
+          grade: assign.grade,
+        });
+      }
+    }
+
+    return assignments;
+  } catch {
+    return [];
+  }
+}
+
+export async function getAssignmentSubmissionStatus(assignId: string): Promise<{
+  submitted: boolean;
+  graded: boolean;
+  gradingStatus?: string;
+  grade?: string;
+  submissionTime?: number;
+} | null> {
+  try {
+    const siteInfo = await getSiteInfo();
+    const result = await callMoodleAPI<MoodleSubmissionStatus>("mod_assign_get_submission_status", {
+      assignid: Number(assignId),
+      userid: Number(siteInfo.userid),
+    });
+
+    return {
+      submitted: result.lastattempt?.submission?.status === "submitted",
+      graded: result.lastattempt?.graded || false,
+      gradingStatus: result.lastattempt?.gradingstatus,
+      grade: result.feedback?.gradefordisplay,
+      submissionTime: result.lastattempt?.submission?.timemodified,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Quiz functions
+export async function getQuizzes(courseId?: string): Promise<{
+  id: string;
+  courseId: string;
+  name: string;
+  intro: string;
+  timeopen: number;
+  timeclose: number;
+  timelimit: number;
+  grade: number;
+  attempts: number;
+}[]> {
+  try {
+    const params: Record<string, unknown> = {};
+    if (courseId) {
+      params.courseids = [Number(courseId)];
+    }
+
+    const result = await callMoodleAPI<{ quizzes: MoodleQuiz[] }>("mod_quiz_get_quizzes_by_courses", params);
+
+    return (result.quizzes || []).map((quiz) => ({
+      id: String(quiz.id),
+      courseId: String(quiz.course),
+      name: quiz.name,
+      intro: quiz.intro,
+      timeopen: quiz.timeopen,
+      timeclose: quiz.timeclose,
+      timelimit: quiz.timelimit,
+      grade: quiz.grade,
+      attempts: quiz.attempts,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function getQuizAttempts(quizId: string): Promise<{
+  id: string;
+  attempt: number;
+  state: string;
+  timestart: number;
+  timefinish: number;
+  grade?: number;
+}[]> {
+  try {
+    const siteInfo = await getSiteInfo();
+    const result = await callMoodleAPI<{ attempts: MoodleQuizAttempt[] }>("mod_quiz_get_user_quiz_attempts", {
+      quizid: Number(quizId),
+      userid: Number(siteInfo.userid),
+    });
+
+    return (result.attempts || []).map((attempt) => ({
+      id: String(attempt.id),
+      attempt: attempt.attempt,
+      state: attempt.state,
+      timestart: attempt.timestart,
+      timefinish: attempt.timefinish,
+      grade: attempt.sumgrades,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// Forum functions
+export async function getForums(courseId?: string): Promise<{
+  id: string;
+  courseId: string;
+  name: string;
+  intro: string;
+  type: string;
+  numdiscussions: number;
+}[]> {
+  try {
+    const params: Record<string, unknown> = {};
+    if (courseId) {
+      params.courseids = [Number(courseId)];
+    }
+
+    const result = await callMoodleAPI<MoodleForum[]>("mod_forum_get_forums_by_courses", params);
+
+    return (result || []).map((forum) => ({
+      id: String(forum.id),
+      courseId: String(forum.course),
+      name: forum.name,
+      intro: forum.intro,
+      type: forum.type,
+      numdiscussions: forum.numdiscussions,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function getForumDiscussions(forumId: string): Promise<{
+  id: string;
+  name: string;
+  subject: string;
+  message: string;
+  userfullname: string;
+  created: number;
+  modified: number;
+  numreplies: number;
+  pinned: boolean;
+}[]> {
+  try {
+    const result = await callMoodleAPI<{ discussions: MoodleDiscussion[] }>("mod_forum_get_forum_discussions", {
+      forumid: Number(forumId),
+    });
+
+    return (result.discussions || []).map((disc) => ({
+      id: String(disc.id),
+      name: disc.name,
+      subject: disc.subject,
+      message: disc.message,
+      userfullname: disc.userfullname,
+      created: disc.created,
+      modified: disc.modified,
+      numreplies: disc.numreplies,
+      pinned: disc.pinned,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// Messages and Notifications
+export async function getNotifications(): Promise<{
+  id: string;
+  subject: string;
+  text: string;
+  timecreated: number;
+  read: boolean;
+  component: string;
+  contexturl: string;
+  userfromfullname: string;
+}[]> {
+  try {
+    const siteInfo = await getSiteInfo();
+    const result = await callMoodleAPI<{ notifications: MoodleNotification[] }>("message_popup_get_popup_notifications", {
+      useridto: Number(siteInfo.userid),
+    });
+
+    return (result.notifications || []).map((notif) => ({
+      id: String(notif.id),
+      subject: notif.subject || notif.shortenedsubject,
+      text: notif.text || notif.fullmessage,
+      timecreated: notif.timecreated,
+      read: notif.read || notif.timeread !== null,
+      component: notif.component,
+      contexturl: notif.contexturl,
+      userfromfullname: notif.userfromfullname,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function getUnreadNotificationCount(): Promise<number> {
+  try {
+    const siteInfo = await getSiteInfo();
+    const result = await callMoodleAPI<number>("message_popup_get_unread_popup_notification_count", {
+      useridto: Number(siteInfo.userid),
+    });
+    return result || 0;
+  } catch {
+    return 0;
+  }
+}
+
+// Badges
+export async function getUserBadges(): Promise<{
+  id: string;
+  name: string;
+  description: string;
+  badgeurl: string;
+  issuername: string;
+  dateissued: number;
+}[]> {
+  try {
+    const siteInfo = await getSiteInfo();
+    const result = await callMoodleAPI<{ badges: MoodleBadge[] }>("core_badges_get_user_badges", {
+      userid: Number(siteInfo.userid),
+    });
+
+    return (result.badges || []).map((badge) => ({
+      id: String(badge.id),
+      name: badge.name,
+      description: badge.description,
+      badgeurl: badge.badgeurl,
+      issuername: badge.issuername,
+      dateissued: badge.dateissued,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// Activity Completion
+export async function updateActivityCompletion(cmid: string, completed: boolean): Promise<boolean> {
+  try {
+    await callMoodleAPI("core_completion_update_activity_completion_status_manually", {
+      cmid: Number(cmid),
+      completed: completed ? 1 : 0,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function getActivityCompletionStatus(courseId: string): Promise<{
+  activityId: string;
+  state: number;
+  timecompleted: number | null;
+}[]> {
+  try {
+    const siteInfo = await getSiteInfo();
+    const result = await callMoodleAPI<{
+      statuses: { cmid: number; state: number; timecompleted: number | null }[];
+    }>("core_completion_get_activities_completion_status", {
+      courseid: Number(courseId),
+      userid: Number(siteInfo.userid),
+    });
+
+    return (result.statuses || []).map((status) => ({
+      activityId: String(status.cmid),
+      state: status.state,
+      timecompleted: status.timecompleted,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// View course (marks course as viewed)
+export async function viewCourse(courseId: string): Promise<boolean> {
+  try {
+    await callMoodleAPI("core_course_view_course", {
+      courseid: Number(courseId),
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }

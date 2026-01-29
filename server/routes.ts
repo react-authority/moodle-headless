@@ -6,6 +6,16 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Get connection status
+  app.get("/api/status", async (_req, res) => {
+    try {
+      const status = storage.getConnectionStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get status" });
+    }
+  });
+
   // Get current user
   app.get("/api/user", async (_req, res) => {
     try {
@@ -116,6 +126,110 @@ export async function registerRoutes(
       res.json(stats);
     } catch (error) {
       res.status(500).json({ error: "Failed to get stats" });
+    }
+  });
+
+  // Get assignments
+  app.get("/api/assignments", async (req, res) => {
+    try {
+      const courseId = req.query.courseId as string | undefined;
+      const assignments = await storage.getAssignments(courseId);
+      res.json(assignments);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get assignments" });
+    }
+  });
+
+  // Get assignment submission status
+  app.get("/api/assignments/:id/status", async (req, res) => {
+    try {
+      const status = await storage.getAssignmentSubmissionStatus(req.params.id);
+      res.json(status || { submitted: false, graded: false });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get assignment status" });
+    }
+  });
+
+  // Get quizzes
+  app.get("/api/quizzes", async (req, res) => {
+    try {
+      const courseId = req.query.courseId as string | undefined;
+      const quizzes = await storage.getQuizzes(courseId);
+      res.json(quizzes);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get quizzes" });
+    }
+  });
+
+  // Get quiz attempts
+  app.get("/api/quizzes/:id/attempts", async (req, res) => {
+    try {
+      const attempts = await storage.getQuizAttempts(req.params.id);
+      res.json(attempts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get quiz attempts" });
+    }
+  });
+
+  // Get forums
+  app.get("/api/forums", async (req, res) => {
+    try {
+      const courseId = req.query.courseId as string | undefined;
+      const forums = await storage.getForums(courseId);
+      res.json(forums);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get forums" });
+    }
+  });
+
+  // Get forum discussions
+  app.get("/api/forums/:id/discussions", async (req, res) => {
+    try {
+      const discussions = await storage.getForumDiscussions(req.params.id);
+      res.json(discussions);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get forum discussions" });
+    }
+  });
+
+  // Get notifications
+  app.get("/api/notifications", async (_req, res) => {
+    try {
+      const notifications = await storage.getNotifications();
+      res.json(notifications);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get notifications" });
+    }
+  });
+
+  // Get unread notification count
+  app.get("/api/notifications/count", async (_req, res) => {
+    try {
+      const count = await storage.getUnreadNotificationCount();
+      res.json({ count });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get notification count" });
+    }
+  });
+
+  // Get user badges
+  app.get("/api/badges", async (_req, res) => {
+    try {
+      const badges = await storage.getUserBadges();
+      res.json(badges);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get badges" });
+    }
+  });
+
+  // Update activity completion
+  app.post("/api/activities/:id/completion", async (req, res) => {
+    try {
+      const { completed } = req.body;
+      const success = await storage.updateActivityCompletion(req.params.id, completed);
+      res.json({ success });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update completion" });
     }
   });
 
