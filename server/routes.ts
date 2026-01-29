@@ -455,5 +455,613 @@ export async function registerRoutes(
     }
   });
 
+  // ============ LESSON API ROUTES ============
+
+  app.get("/api/lesson/:cmid", async (req, res) => {
+    try {
+      const { getLessonInfo } = await import("./moodle-client");
+      const lesson = await getLessonInfo(req.params.cmid);
+      if (!lesson) {
+        return res.status(404).json({ error: "Lesson not found" });
+      }
+      res.json(lesson);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get lesson" });
+    }
+  });
+
+  app.get("/api/lesson/:lessonId/pages", async (req, res) => {
+    try {
+      const { getLessonPages } = await import("./moodle-client");
+      const pages = await getLessonPages(req.params.lessonId);
+      res.json(pages);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get lesson pages" });
+    }
+  });
+
+  app.get("/api/lessons", async (_req, res) => {
+    try {
+      const { getAllLessons } = await import("./moodle-client");
+      const lessons = await getAllLessons();
+      res.json(lessons);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get lessons" });
+    }
+  });
+
+  // ============ SCORM API ROUTES ============
+
+  app.get("/api/scorm/:cmid", async (req, res) => {
+    try {
+      const { getScormInfo } = await import("./moodle-client");
+      const scorm = await getScormInfo(req.params.cmid);
+      if (!scorm) {
+        return res.status(404).json({ error: "SCORM not found" });
+      }
+      res.json(scorm);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get SCORM" });
+    }
+  });
+
+  app.get("/api/scorm/:scormId/scoes", async (req, res) => {
+    try {
+      const { getScormScoes } = await import("./moodle-client");
+      const scoes = await getScormScoes(req.params.scormId);
+      res.json(scoes);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get SCORM SCOes" });
+    }
+  });
+
+  app.get("/api/scorm/:scormId/attempts", async (req, res) => {
+    try {
+      const { getScormAttemptCount } = await import("./moodle-client");
+      const count = await getScormAttemptCount(req.params.scormId);
+      res.json({ count });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get SCORM attempts" });
+    }
+  });
+
+  app.get("/api/scorms", async (_req, res) => {
+    try {
+      const { getAllScorms } = await import("./moodle-client");
+      const scorms = await getAllScorms();
+      res.json(scorms);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get SCORMs" });
+    }
+  });
+
+  // ============ H5P ACTIVITY API ROUTES ============
+
+  app.get("/api/h5p/:cmid", async (req, res) => {
+    try {
+      const { getH5pActivityInfo } = await import("./moodle-client");
+      const h5p = await getH5pActivityInfo(req.params.cmid);
+      if (!h5p) {
+        return res.status(404).json({ error: "H5P activity not found" });
+      }
+      res.json(h5p);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get H5P activity" });
+    }
+  });
+
+  app.get("/api/h5p/:h5pId/attempts", async (req, res) => {
+    try {
+      const { getH5pAttempts } = await import("./moodle-client");
+      const attempts = await getH5pAttempts(req.params.h5pId);
+      res.json(attempts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get H5P attempts" });
+    }
+  });
+
+  app.get("/api/h5pactivities", async (_req, res) => {
+    try {
+      const { getAllH5pActivities } = await import("./moodle-client");
+      const h5pactivities = await getAllH5pActivities();
+      res.json(h5pactivities);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get H5P activities" });
+    }
+  });
+
+  // ============ WIKI API ROUTES ============
+
+  app.get("/api/wiki/:cmid", async (req, res) => {
+    try {
+      const { getWikiInfo } = await import("./moodle-client");
+      const wiki = await getWikiInfo(req.params.cmid);
+      if (!wiki) {
+        return res.status(404).json({ error: "Wiki not found" });
+      }
+      res.json(wiki);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get wiki" });
+    }
+  });
+
+  app.get("/api/wiki/:wikiId/subwikis", async (req, res) => {
+    try {
+      const { getWikiSubwikis } = await import("./moodle-client");
+      const subwikis = await getWikiSubwikis(req.params.wikiId);
+      res.json(subwikis);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get wiki subwikis" });
+    }
+  });
+
+  app.get("/api/wiki/subwiki/:subwikiId/pages", async (req, res) => {
+    try {
+      const { getWikiPages } = await import("./moodle-client");
+      const pages = await getWikiPages(req.params.subwikiId);
+      res.json(pages);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get wiki pages" });
+    }
+  });
+
+  app.get("/api/wiki/page/:pageId", async (req, res) => {
+    try {
+      const { getWikiPageContents } = await import("./moodle-client");
+      const page = await getWikiPageContents(req.params.pageId);
+      if (!page) {
+        return res.status(404).json({ error: "Wiki page not found" });
+      }
+      res.json(page);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get wiki page" });
+    }
+  });
+
+  app.get("/api/wikis", async (_req, res) => {
+    try {
+      const { getAllWikis } = await import("./moodle-client");
+      const wikis = await getAllWikis();
+      res.json(wikis);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get wikis" });
+    }
+  });
+
+  // ============ GLOSSARY API ROUTES ============
+
+  app.get("/api/glossary/:cmid", async (req, res) => {
+    try {
+      const { getGlossaryInfo } = await import("./moodle-client");
+      const glossary = await getGlossaryInfo(req.params.cmid);
+      if (!glossary) {
+        return res.status(404).json({ error: "Glossary not found" });
+      }
+      res.json(glossary);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get glossary" });
+    }
+  });
+
+  app.get("/api/glossary/:glossaryId/entries", async (req, res) => {
+    try {
+      const { getGlossaryEntries } = await import("./moodle-client");
+      const letter = (req.query.letter as string) || "ALL";
+      const from = parseInt(req.query.from as string) || 0;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const entries = await getGlossaryEntries(req.params.glossaryId, letter, from, limit);
+      res.json(entries);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get glossary entries" });
+    }
+  });
+
+  app.get("/api/glossary/entry/:entryId", async (req, res) => {
+    try {
+      const { getGlossaryEntry } = await import("./moodle-client");
+      const entry = await getGlossaryEntry(req.params.entryId);
+      if (!entry) {
+        return res.status(404).json({ error: "Glossary entry not found" });
+      }
+      res.json(entry);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get glossary entry" });
+    }
+  });
+
+  app.get("/api/glossaries", async (_req, res) => {
+    try {
+      const { getAllGlossaries } = await import("./moodle-client");
+      const glossaries = await getAllGlossaries();
+      res.json(glossaries);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get glossaries" });
+    }
+  });
+
+  // ============ FOLDER API ROUTES ============
+
+  app.get("/api/folder/:cmid", async (req, res) => {
+    try {
+      const { getFolderInfo } = await import("./moodle-client");
+      const folder = await getFolderInfo(req.params.cmid);
+      if (!folder) {
+        return res.status(404).json({ error: "Folder not found" });
+      }
+      res.json(folder);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get folder" });
+    }
+  });
+
+  app.get("/api/folders", async (_req, res) => {
+    try {
+      const { getAllFolders } = await import("./moodle-client");
+      const folders = await getAllFolders();
+      res.json(folders);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get folders" });
+    }
+  });
+
+  // ============ CHOICE API ROUTES ============
+
+  app.get("/api/choice/:cmid", async (req, res) => {
+    try {
+      const { getChoiceInfo } = await import("./moodle-client");
+      const choice = await getChoiceInfo(req.params.cmid);
+      if (!choice) {
+        return res.status(404).json({ error: "Choice not found" });
+      }
+      res.json(choice);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get choice" });
+    }
+  });
+
+  app.get("/api/choice/:choiceId/options", async (req, res) => {
+    try {
+      const { getChoiceOptions } = await import("./moodle-client");
+      const options = await getChoiceOptions(req.params.choiceId);
+      res.json(options);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get choice options" });
+    }
+  });
+
+  app.get("/api/choice/:choiceId/results", async (req, res) => {
+    try {
+      const { getChoiceResults } = await import("./moodle-client");
+      const results = await getChoiceResults(req.params.choiceId);
+      res.json(results);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get choice results" });
+    }
+  });
+
+  app.post("/api/choice/:choiceId/submit", async (req, res) => {
+    try {
+      const { submitChoice } = await import("./moodle-client");
+      const { responses } = req.body;
+      const success = await submitChoice(req.params.choiceId, responses);
+      res.json({ success });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to submit choice" });
+    }
+  });
+
+  app.get("/api/choices", async (_req, res) => {
+    try {
+      const { getAllChoices } = await import("./moodle-client");
+      const choices = await getAllChoices();
+      res.json(choices);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get choices" });
+    }
+  });
+
+  // ============ FEEDBACK API ROUTES ============
+
+  app.get("/api/feedback/:cmid", async (req, res) => {
+    try {
+      const { getFeedbackInfo } = await import("./moodle-client");
+      const feedback = await getFeedbackInfo(req.params.cmid);
+      if (!feedback) {
+        return res.status(404).json({ error: "Feedback not found" });
+      }
+      res.json(feedback);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get feedback" });
+    }
+  });
+
+  app.get("/api/feedback/:feedbackId/items", async (req, res) => {
+    try {
+      const { getFeedbackItems } = await import("./moodle-client");
+      const items = await getFeedbackItems(req.params.feedbackId);
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get feedback items" });
+    }
+  });
+
+  app.get("/api/feedbacks", async (_req, res) => {
+    try {
+      const { getAllFeedbacks } = await import("./moodle-client");
+      const feedbacks = await getAllFeedbacks();
+      res.json(feedbacks);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get feedbacks" });
+    }
+  });
+
+  // ============ DATABASE API ROUTES ============
+
+  app.get("/api/data/:cmid", async (req, res) => {
+    try {
+      const { getDataInfo } = await import("./moodle-client");
+      const data = await getDataInfo(req.params.cmid);
+      if (!data) {
+        return res.status(404).json({ error: "Database not found" });
+      }
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get database" });
+    }
+  });
+
+  app.get("/api/data/:dataId/fields", async (req, res) => {
+    try {
+      const { getDataFields } = await import("./moodle-client");
+      const fields = await getDataFields(req.params.dataId);
+      res.json(fields);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get database fields" });
+    }
+  });
+
+  app.get("/api/data/:dataId/entries", async (req, res) => {
+    try {
+      const { getDataEntries } = await import("./moodle-client");
+      const page = parseInt(req.query.page as string) || 0;
+      const perpage = parseInt(req.query.perpage as string) || 10;
+      const entries = await getDataEntries(req.params.dataId, page, perpage);
+      res.json(entries);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get database entries" });
+    }
+  });
+
+  app.get("/api/databases", async (_req, res) => {
+    try {
+      const { getAllDatabases } = await import("./moodle-client");
+      const databases = await getAllDatabases();
+      res.json(databases);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get databases" });
+    }
+  });
+
+  // ============ WORKSHOP API ROUTES ============
+
+  app.get("/api/workshop/:cmid", async (req, res) => {
+    try {
+      const { getWorkshopInfo } = await import("./moodle-client");
+      const workshop = await getWorkshopInfo(req.params.cmid);
+      if (!workshop) {
+        return res.status(404).json({ error: "Workshop not found" });
+      }
+      res.json(workshop);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get workshop" });
+    }
+  });
+
+  app.get("/api/workshops", async (_req, res) => {
+    try {
+      const { getAllWorkshops } = await import("./moodle-client");
+      const workshops = await getAllWorkshops();
+      res.json(workshops);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get workshops" });
+    }
+  });
+
+  // ============ LTI API ROUTES ============
+
+  app.get("/api/lti/:cmid", async (req, res) => {
+    try {
+      const { getLtiInfo } = await import("./moodle-client");
+      const lti = await getLtiInfo(req.params.cmid);
+      if (!lti) {
+        return res.status(404).json({ error: "LTI not found" });
+      }
+      res.json(lti);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get LTI" });
+    }
+  });
+
+  app.get("/api/lti/:ltiId/launch", async (req, res) => {
+    try {
+      const { getLtiLaunchData } = await import("./moodle-client");
+      const launchData = await getLtiLaunchData(req.params.ltiId);
+      if (!launchData) {
+        return res.status(404).json({ error: "LTI launch data not found" });
+      }
+      res.json(launchData);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get LTI launch data" });
+    }
+  });
+
+  // ============ BOOK API ROUTES ============
+
+  app.get("/api/book/:cmid", async (req, res) => {
+    try {
+      const { getBookContent } = await import("./moodle-client");
+      const book = await getBookContent(req.params.cmid);
+      if (!book) {
+        return res.status(404).json({ error: "Book not found" });
+      }
+      res.json(book);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get book" });
+    }
+  });
+
+  app.get("/api/books", async (_req, res) => {
+    try {
+      const { getAllBooks } = await import("./moodle-client");
+      const books = await getAllBooks();
+      res.json(books);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get books" });
+    }
+  });
+
+  // ============ PAGE API ROUTES ============
+
+  app.get("/api/page/:cmid", async (req, res) => {
+    try {
+      const { getPageContent } = await import("./moodle-client");
+      const page = await getPageContent(req.params.cmid);
+      if (!page) {
+        return res.status(404).json({ error: "Page not found" });
+      }
+      res.json(page);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get page" });
+    }
+  });
+
+  app.get("/api/pages", async (_req, res) => {
+    try {
+      const { getAllPages } = await import("./moodle-client");
+      const pages = await getAllPages();
+      res.json(pages);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get pages" });
+    }
+  });
+
+  // ============ RESOURCE API ROUTES ============
+
+  app.get("/api/resource/:cmid", async (req, res) => {
+    try {
+      const { getResourceContent } = await import("./moodle-client");
+      const resource = await getResourceContent(req.params.cmid);
+      if (!resource) {
+        return res.status(404).json({ error: "Resource not found" });
+      }
+      res.json(resource);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get resource" });
+    }
+  });
+
+  app.get("/api/resources", async (_req, res) => {
+    try {
+      const { getAllResources } = await import("./moodle-client");
+      const resources = await getAllResources();
+      res.json(resources);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get resources" });
+    }
+  });
+
+  // ============ URL API ROUTES ============
+
+  app.get("/api/url/:cmid", async (req, res) => {
+    try {
+      const { getUrlContent } = await import("./moodle-client");
+      const urlContent = await getUrlContent(req.params.cmid);
+      if (!urlContent) {
+        return res.status(404).json({ error: "URL not found" });
+      }
+      res.json(urlContent);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get URL" });
+    }
+  });
+
+  app.get("/api/urls", async (_req, res) => {
+    try {
+      const { getAllUrls } = await import("./moodle-client");
+      const urls = await getAllUrls();
+      res.json(urls);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get URLs" });
+    }
+  });
+
+  // ============ ALL ACTIVITIES ROUTE ============
+
+  app.get("/api/all-activities", async (_req, res) => {
+    try {
+      const moodleClient = await import("./moodle-client");
+      
+      const [
+        quizzes,
+        assignments,
+        forums,
+        lessons,
+        scorms,
+        h5pactivities,
+        wikis,
+        glossaries,
+        folders,
+        choices,
+        feedbacks,
+        databases,
+        workshops,
+        books,
+        pages,
+        resources,
+        urls,
+      ] = await Promise.all([
+        moodleClient.getQuizzes(),
+        moodleClient.getAssignments(),
+        moodleClient.getForums(),
+        moodleClient.getAllLessons(),
+        moodleClient.getAllScorms(),
+        moodleClient.getAllH5pActivities(),
+        moodleClient.getAllWikis(),
+        moodleClient.getAllGlossaries(),
+        moodleClient.getAllFolders(),
+        moodleClient.getAllChoices(),
+        moodleClient.getAllFeedbacks(),
+        moodleClient.getAllDatabases(),
+        moodleClient.getAllWorkshops(),
+        moodleClient.getAllBooks(),
+        moodleClient.getAllPages(),
+        moodleClient.getAllResources(),
+        moodleClient.getAllUrls(),
+      ]);
+      
+      res.json({
+        quizzes: quizzes.map(q => ({ ...q, modname: "quiz" })),
+        assignments: assignments.map(a => ({ ...a, modname: "assign" })),
+        forums: forums.map(f => ({ ...f, modname: "forum" })),
+        lessons: lessons.map(l => ({ ...l, modname: "lesson" })),
+        scorms: scorms.map(s => ({ ...s, modname: "scorm" })),
+        h5pactivities: h5pactivities.map(h => ({ ...h, modname: "h5pactivity" })),
+        wikis: wikis.map(w => ({ ...w, modname: "wiki" })),
+        glossaries: glossaries.map(g => ({ ...g, modname: "glossary" })),
+        folders: folders.map(f => ({ ...f, modname: "folder" })),
+        choices: choices.map(c => ({ ...c, modname: "choice" })),
+        feedbacks: feedbacks.map(f => ({ ...f, modname: "feedback" })),
+        databases: databases.map(d => ({ ...d, modname: "data" })),
+        workshops: workshops.map(w => ({ ...w, modname: "workshop" })),
+        books: books.map(b => ({ ...b, modname: "book" })),
+        pages: pages.map(p => ({ ...p, modname: "page" })),
+        resources: resources.map(r => ({ ...r, modname: "resource" })),
+        urls: urls.map(u => ({ ...u, modname: "url" })),
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get all activities" });
+    }
+  });
+
   return httpServer;
 }

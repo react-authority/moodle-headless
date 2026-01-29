@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Bell,
   Award,
+  Layers,
 } from "lucide-react";
 import type { User } from "@shared/schema";
 import {
@@ -47,6 +48,11 @@ const mainNavItems = [
     title: "My Courses",
     url: "/courses",
     icon: BookOpen,
+  },
+  {
+    title: "All Activities",
+    url: "/activities",
+    icon: Layers,
   },
   {
     title: "Assignments",

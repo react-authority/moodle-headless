@@ -18,6 +18,8 @@ import Forums from "@/pages/forums";
 import Notifications from "@/pages/notifications";
 import Badges from "@/pages/badges";
 import Settings from "@/pages/settings";
+import Activities from "@/pages/activities";
+import ActivityPage from "@/pages/activity-page";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -31,6 +33,8 @@ function Router() {
       <Route path="/assignments" component={Assignments} />
       <Route path="/quizzes" component={Quizzes} />
       <Route path="/forums" component={Forums} />
+      <Route path="/activities" component={Activities} />
+      <Route path="/activity/:modname/:cmid" component={ActivityPage} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/badges" component={Badges} />
       <Route path="/settings" component={Settings} />
