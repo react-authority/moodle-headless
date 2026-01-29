@@ -23,6 +23,7 @@ interface ActivityItemProps {
   activity: Activity;
   showDueDate?: boolean;
   showCompletionToggle?: boolean;
+  onViewActivity?: (activity: Activity) => void;
 }
 
 const activityIcons: Record<ActivityType, typeof FileText> = {
@@ -73,7 +74,7 @@ const activityLabels: Record<ActivityType, string> = {
   lti: "External Tool",
 };
 
-export function ActivityItem({ activity, showDueDate = true, showCompletionToggle = false }: ActivityItemProps) {
+export function ActivityItem({ activity, showDueDate = true, showCompletionToggle = false, onViewActivity }: ActivityItemProps) {
   const Icon = activityIcons[activity.modname] || FileText;
   const label = activityLabels[activity.modname] || activity.modname;
   const [localCompleted, setLocalCompleted] = useState(activity.completed);
@@ -121,15 +122,17 @@ export function ActivityItem({ activity, showDueDate = true, showCompletionToggl
   const dueInfo = activity.duedate ? formatDueDate(activity.duedate) : null;
 
   const handleOpenActivity = () => {
-    if (activity.url) {
+    if (onViewActivity) {
+      onViewActivity(activity);
+    } else if (activity.url) {
       window.open(activity.url, "_blank", "noopener,noreferrer");
     }
   };
 
   return (
     <Card
-      className={`hover-elevate transition-all duration-200 overflow-visible ${activity.url ? "cursor-pointer" : ""}`}
-      onClick={activity.url ? handleOpenActivity : undefined}
+      className={`hover-elevate transition-all duration-200 overflow-visible ${(activity.url || onViewActivity) ? "cursor-pointer" : ""}`}
+      onClick={(activity.url || onViewActivity) ? handleOpenActivity : undefined}
       data-testid={`activity-${activity.id}`}
     >
       <CardContent className="p-4">

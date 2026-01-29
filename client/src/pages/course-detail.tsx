@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import {
@@ -20,11 +21,19 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { ActivityItem } from "@/components/activity-item";
+import { ActivityViewer } from "@/components/activity-viewer";
 import type { Course, Section, Activity } from "@shared/schema";
 
 export default function CourseDetail() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
+
+  const handleViewActivity = (activity: Activity) => {
+    setSelectedActivity(activity);
+    setViewerOpen(true);
+  };
 
   const { data: course, isLoading: courseLoading } = useQuery<Course>({
     queryKey: ["/api/courses", id],
@@ -182,6 +191,7 @@ export default function CourseDetail() {
                                   activity={activity}
                                   showDueDate={false}
                                   showCompletionToggle={true}
+                                  onViewActivity={handleViewActivity}
                                 />
                               ))
                             ) : (
@@ -266,6 +276,13 @@ export default function CourseDetail() {
           )}
         </div>
       </div>
+
+      {/* Activity Viewer Dialog */}
+      <ActivityViewer
+        activity={selectedActivity}
+        open={viewerOpen}
+        onOpenChange={setViewerOpen}
+      />
     </div>
   );
 }

@@ -776,6 +776,196 @@ export async function getUserBadges(): Promise<{
   }
 }
 
+// Module Content Fetching
+interface MoodleBook {
+  id: number;
+  coursemodule: number;
+  course: number;
+  name: string;
+  intro: string;
+  introformat: number;
+}
+
+interface MoodleBookChapter {
+  id: number;
+  bookid: number;
+  pagenum: number;
+  subchapter: number;
+  title: string;
+  content: string;
+  contentformat: number;
+  hidden: number;
+}
+
+interface MoodlePage {
+  id: number;
+  coursemodule: number;
+  course: number;
+  name: string;
+  intro: string;
+  content: string;
+  contentformat: number;
+}
+
+interface MoodleResource {
+  id: number;
+  coursemodule: number;
+  course: number;
+  name: string;
+  intro: string;
+  contentfiles?: { filename: string; fileurl: string; filesize: number; mimetype: string }[];
+}
+
+export async function getBookContent(cmid: string): Promise<{
+  id: string;
+  name: string;
+  intro: string;
+  chapters: { id: string; title: string; content: string; pagenum: number }[];
+} | null> {
+  try {
+    const courses = await getCourses();
+    const courseIds = courses.map(c => Number(c.id));
+    
+    const booksResult = await callMoodleAPI<{ books: MoodleBook[] }>("mod_book_get_books_by_courses", {
+      courseids: courseIds,
+    });
+    const book = booksResult.books?.find(b => String(b.coursemodule) === cmid);
+    
+    if (!book) return null;
+
+    // Try to view the book to trigger logging/completion
+    try {
+      await callMoodleAPI("mod_book_view_book", { bookid: book.id });
+    } catch {
+      // View might fail, continue anyway
+    }
+
+    return {
+      id: String(book.id),
+      name: book.name,
+      intro: book.intro,
+      chapters: [],  // Moodle doesn't expose chapter content through standard API
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function getPageContent(cmid: string): Promise<{
+  id: string;
+  name: string;
+  intro: string;
+  content: string;
+} | null> {
+  try {
+    const courses = await getCourses();
+    const courseIds = courses.map(c => Number(c.id));
+    
+    const result = await callMoodleAPI<{ pages: MoodlePage[] }>("mod_page_get_pages_by_courses", {
+      courseids: courseIds,
+    });
+    const page = result.pages?.find(p => String(p.coursemodule) === cmid);
+    
+    if (!page) return null;
+
+    return {
+      id: String(page.id),
+      name: page.name,
+      intro: page.intro,
+      content: page.content,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function getResourceContent(cmid: string): Promise<{
+  id: string;
+  name: string;
+  intro: string;
+  files: { filename: string; fileurl: string; filesize: number; mimetype: string }[];
+} | null> {
+  try {
+    const courses = await getCourses();
+    const courseIds = courses.map(c => Number(c.id));
+    
+    const result = await callMoodleAPI<{ resources: MoodleResource[] }>("mod_resource_get_resources_by_courses", {
+      courseids: courseIds,
+    });
+    const resource = result.resources?.find(r => String(r.coursemodule) === cmid);
+    
+    if (!resource) return null;
+
+    return {
+      id: String(resource.id),
+      name: resource.name,
+      intro: resource.intro,
+      files: (resource.contentfiles || []).map(f => ({
+        filename: f.filename,
+        fileurl: f.fileurl + `?token=${MOODLE_TOKEN}`,
+        filesize: f.filesize,
+        mimetype: f.mimetype,
+      })),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function getUrlContent(cmid: string): Promise<{
+  id: string;
+  name: string;
+  intro: string;
+  externalurl: string;
+} | null> {
+  try {
+    const courses = await getCourses();
+    const courseIds = courses.map(c => Number(c.id));
+    
+    const result = await callMoodleAPI<{ urls: { id: number; coursemodule: number; name: string; intro: string; externalurl: string }[] }>("mod_url_get_urls_by_courses", {
+      courseids: courseIds,
+    });
+    const urlMod = result.urls?.find(u => String(u.coursemodule) === cmid);
+    
+    if (!urlMod) return null;
+
+    return {
+      id: String(urlMod.id),
+      name: urlMod.name,
+      intro: urlMod.intro,
+      externalurl: urlMod.externalurl,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function getLabelContent(cmid: string): Promise<{
+  id: string;
+  name: string;
+  intro: string;
+} | null> {
+  try {
+    const courses = await getCourses();
+    const courseIds = courses.map(c => Number(c.id));
+    
+    const result = await callMoodleAPI<{ labels: { id: number; coursemodule: number; name: string; intro: string }[] }>("mod_label_get_labels_by_courses", {
+      courseids: courseIds,
+    });
+    const label = result.labels?.find(l => String(l.coursemodule) === cmid);
+    
+    if (!label) return null;
+
+    return {
+      id: String(label.id),
+      name: label.name,
+      intro: label.intro,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // Activity Completion
 export async function updateActivityCompletion(cmid: string, completed: boolean): Promise<boolean> {
   try {

@@ -233,5 +233,22 @@ export async function registerRoutes(
     }
   });
 
+  // Get module content for in-app viewing
+  app.get("/api/modules/:cmid/content", async (req, res) => {
+    try {
+      const { modname } = req.query;
+      if (!modname || typeof modname !== "string") {
+        return res.status(400).json({ error: "modname query parameter required" });
+      }
+      const content = await storage.getModuleContent(req.params.cmid, modname);
+      if (!content) {
+        return res.status(404).json({ error: "Content not found" });
+      }
+      res.json(content);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get module content" });
+    }
+  });
+
   return httpServer;
 }

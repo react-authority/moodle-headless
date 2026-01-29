@@ -102,6 +102,15 @@ export interface IStorage {
   }[]>;
   updateActivityCompletion(cmid: string, completed: boolean): Promise<boolean>;
   getConnectionStatus(): { connected: boolean; siteUrl: string };
+  getModuleContent(cmid: string, modname: string): Promise<{
+    type: string;
+    id: string;
+    name: string;
+    intro: string;
+    content?: string;
+    files?: { filename: string; fileurl: string; filesize: number; mimetype: string }[];
+    externalurl?: string;
+  } | null>;
 }
 
 const demoUser: User = {
@@ -374,6 +383,83 @@ class MoodleStorage implements IStorage {
       connected: moodleClient.isConfigured(),
       siteUrl: moodleClient.getMoodleUrl(),
     };
+  }
+
+  async getModuleContent(cmid: string, modname: string) {
+    if (!moodleClient.isConfigured()) {
+      return null;
+    }
+
+    switch (modname) {
+      case "page": {
+        const page = await moodleClient.getPageContent(cmid);
+        if (page) {
+          return {
+            type: "page",
+            id: page.id,
+            name: page.name,
+            intro: page.intro,
+            content: page.content,
+          };
+        }
+        break;
+      }
+      case "book": {
+        const book = await moodleClient.getBookContent(cmid);
+        if (book) {
+          return {
+            type: "book",
+            id: book.id,
+            name: book.name,
+            intro: book.intro,
+            content: book.intro, // Book content requires special handling
+          };
+        }
+        break;
+      }
+      case "resource": {
+        const resource = await moodleClient.getResourceContent(cmid);
+        if (resource) {
+          return {
+            type: "resource",
+            id: resource.id,
+            name: resource.name,
+            intro: resource.intro,
+            files: resource.files,
+          };
+        }
+        break;
+      }
+      case "url": {
+        const urlContent = await moodleClient.getUrlContent(cmid);
+        if (urlContent) {
+          return {
+            type: "url",
+            id: urlContent.id,
+            name: urlContent.name,
+            intro: urlContent.intro,
+            externalurl: urlContent.externalurl,
+          };
+        }
+        break;
+      }
+      case "label": {
+        const label = await moodleClient.getLabelContent(cmid);
+        if (label) {
+          return {
+            type: "label",
+            id: label.id,
+            name: label.name,
+            intro: label.intro,
+            content: label.intro,
+          };
+        }
+        break;
+      }
+      default:
+        return null;
+    }
+    return null;
   }
 }
 
