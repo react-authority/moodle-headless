@@ -35,6 +35,7 @@ interface ModuleContent {
 }
 
 const supportedModules = ["page", "resource", "url", "label"];
+const embeddableModules = ["quiz", "assign", "forum", "book", "choice", "feedback", "lesson", "scorm", "h5pactivity"];
 
 const activityLabels: Record<string, string> = {
   assign: "Assignment",
@@ -62,6 +63,7 @@ const activityLabels: Record<string, string> = {
 
 export function ActivityViewer({ activity, open, onOpenChange }: ActivityViewerProps) {
   const isSupported = activity ? supportedModules.includes(activity.modname) : false;
+  const isEmbeddable = activity ? embeddableModules.includes(activity.modname) : false;
 
   const { data: content, isLoading, error } = useQuery<ModuleContent>({
     queryKey: ["/api/modules", activity?.id, "content", activity?.modname],
@@ -97,7 +99,30 @@ export function ActivityViewer({ activity, open, onOpenChange }: ActivityViewerP
   const renderContent = () => {
     if (!activity) return null;
 
-    if (!isSupported) {
+    // For embeddable interactive content, show in iframe
+    if (isEmbeddable && hasExternalUrl) {
+      return (
+        <div className="py-2">
+          <div className="relative w-full" style={{ height: "70vh" }}>
+            <iframe
+              src={activity.url}
+              className="w-full h-full border-0 rounded-md"
+              title={activity.name}
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+              data-testid="iframe-activity-content"
+            />
+          </div>
+          <div className="flex justify-center mt-4">
+            <Button variant="outline" onClick={handleOpenExternal} data-testid="button-open-fullscreen">
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Open in Full Window
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    if (!isSupported && !isEmbeddable) {
       return (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
@@ -274,9 +299,11 @@ export function ActivityViewer({ activity, open, onOpenChange }: ActivityViewerP
     }
   };
 
+  const dialogSize = isEmbeddable ? "max-w-5xl" : "max-w-2xl";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" data-testid="dialog-activity-viewer">
+      <DialogContent className={`${dialogSize} max-h-[90vh] overflow-y-auto`} data-testid="dialog-activity-viewer">
         <DialogHeader>
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
