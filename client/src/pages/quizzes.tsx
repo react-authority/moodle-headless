@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileQuestion, Calendar, Clock, CheckCircle2, Play } from "lucide-react";
+import { FileQuestion, Calendar, Clock, CheckCircle2, Play, BookOpen } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { QuizViewer } from "@/components/quiz-viewer";
 
 interface Quiz {
   id: string;
@@ -24,6 +27,8 @@ interface Course {
 }
 
 export default function Quizzes() {
+  const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
+
   const { data: quizzes, isLoading } = useQuery<Quiz[]>({
     queryKey: ["/api/quizzes"],
   });
@@ -76,7 +81,11 @@ export default function Quizzes() {
     const isClosed = quiz.timeclose && quiz.timeclose <= now;
 
     return (
-      <Card className="hover-elevate" data-testid={`quiz-${quiz.id}`}>
+      <Card 
+        className="hover-elevate cursor-pointer" 
+        data-testid={`quiz-${quiz.id}`}
+        onClick={() => setSelectedQuiz(quiz)}
+      >
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex gap-3 flex-1">
@@ -244,6 +253,32 @@ export default function Quizzes() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={!!selectedQuiz} onOpenChange={(open) => !open && setSelectedQuiz(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="dialog-quiz-viewer">
+          <DialogHeader>
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                <BookOpen className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <DialogTitle className="text-lg">{selectedQuiz?.name}</DialogTitle>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="secondary" className="text-xs">Quiz</Badge>
+                  {selectedQuiz && courseMap.get(selectedQuiz.courseId) && (
+                    <span className="text-sm text-muted-foreground">
+                      {courseMap.get(selectedQuiz.courseId)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </DialogHeader>
+          {selectedQuiz && (
+            <QuizViewer cmid={selectedQuiz.id} />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1289,6 +1289,93 @@ export async function getAssignmentInfo(cmid: string): Promise<AssignmentInfo | 
   }
 }
 
+export async function saveAssignmentSubmission(
+  assignId: string, 
+  text?: string,
+  fileItemId?: number
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const pluginData: { type: string; text?: string; onlinetext?: number; files_filemanager?: number }[] = [];
+    
+    if (text !== undefined) {
+      pluginData.push({
+        type: "onlinetext",
+        onlinetext: 1,
+        text,
+      });
+    }
+    
+    if (fileItemId !== undefined) {
+      pluginData.push({
+        type: "file",
+        files_filemanager: fileItemId,
+      });
+    }
+    
+    await callMoodleAPI("mod_assign_save_submission", {
+      assignmentid: Number(assignId),
+      plugindata: {
+        onlinetext_editor: text ? { text, format: 1, itemid: 0 } : undefined,
+        files_filemanager: fileItemId,
+      },
+    });
+    
+    return { success: true };
+  } catch (e: any) {
+    console.error("Failed to save assignment submission:", e);
+    return { success: false, error: e.message || "Failed to save submission" };
+  }
+}
+
+export async function submitAssignmentForGrading(assignId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    await callMoodleAPI("mod_assign_submit_for_grading", {
+      assignmentid: Number(assignId),
+      acceptsubmissionstatement: 1,
+    });
+    return { success: true };
+  } catch (e: any) {
+    console.error("Failed to submit assignment for grading:", e);
+    return { success: false, error: e.message || "Failed to submit for grading" };
+  }
+}
+
+export async function uploadFile(
+  filename: string,
+  fileContent: string,
+  component: string = "user",
+  fileArea: string = "draft"
+): Promise<{ itemid: number; fileurl: string } | null> {
+  try {
+    const formData = new URLSearchParams();
+    formData.append("token", MOODLE_TOKEN);
+    formData.append("component", component);
+    formData.append("filearea", fileArea);
+    formData.append("itemid", "0");
+    formData.append("filepath", "/");
+    formData.append("filename", filename);
+    formData.append("filecontent", fileContent);
+    
+    const response = await fetch(`${MOODLE_URL}/webservice/upload.php`, {
+      method: "POST",
+      body: formData,
+    });
+    
+    const result = await response.json();
+    if (result.error) {
+      throw new Error(result.error);
+    }
+    
+    return {
+      itemid: result.itemid,
+      fileurl: result.url,
+    };
+  } catch (e) {
+    console.error("Failed to upload file:", e);
+    return null;
+  }
+}
+
 // ============ FORUM API ============
 
 interface MoodleForum {

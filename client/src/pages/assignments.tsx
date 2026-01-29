@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ClipboardList, Calendar, Clock, CheckCircle2, AlertCircle, ExternalLink } from "lucide-react";
+import { ClipboardList, Calendar, Clock, CheckCircle2, AlertCircle, ExternalLink, BookOpen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AssignmentViewer } from "@/components/assignment-viewer";
 
 interface Assignment {
   id: string;
@@ -23,6 +26,8 @@ interface Course {
 }
 
 export default function Assignments() {
+  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
+
   const { data: assignments, isLoading } = useQuery<Assignment[]>({
     queryKey: ["/api/assignments"],
   });
@@ -64,7 +69,11 @@ export default function Assignments() {
     const isPast = assignment.duedate && assignment.duedate <= now;
 
     return (
-      <Card className="hover-elevate" data-testid={`assignment-${assignment.id}`}>
+      <Card 
+        className="hover-elevate cursor-pointer" 
+        data-testid={`assignment-${assignment.id}`}
+        onClick={() => setSelectedAssignment(assignment)}
+      >
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex gap-3 flex-1">
@@ -204,6 +213,32 @@ export default function Assignments() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={!!selectedAssignment} onOpenChange={(open) => !open && setSelectedAssignment(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="dialog-assignment-viewer">
+          <DialogHeader>
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                <BookOpen className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <DialogTitle className="text-lg">{selectedAssignment?.name}</DialogTitle>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="secondary" className="text-xs">Assignment</Badge>
+                  {selectedAssignment && courseMap.get(selectedAssignment.courseId) && (
+                    <span className="text-sm text-muted-foreground">
+                      {courseMap.get(selectedAssignment.courseId)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </DialogHeader>
+          {selectedAssignment && (
+            <AssignmentViewer cmid={selectedAssignment.id} />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

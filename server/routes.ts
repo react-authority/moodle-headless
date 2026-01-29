@@ -358,6 +358,35 @@ export async function registerRoutes(
     }
   });
 
+  // Save assignment submission (text/online text)
+  app.post("/api/assignment/:assignId/save", async (req, res) => {
+    try {
+      const { saveAssignmentSubmission } = await import("./moodle-client");
+      const { text } = req.body;
+      const result = await saveAssignmentSubmission(req.params.assignId, text);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error || "Failed to save submission" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save assignment submission" });
+    }
+  });
+
+  // Submit assignment for grading
+  app.post("/api/assignment/:assignId/submit", async (req, res) => {
+    try {
+      const { submitAssignmentForGrading } = await import("./moodle-client");
+      const result = await submitAssignmentForGrading(req.params.assignId);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error || "Failed to submit for grading" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to submit assignment for grading" });
+    }
+  });
+
   // ============ FORUM API ROUTES ============
 
   // Get forum info

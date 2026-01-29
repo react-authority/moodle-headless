@@ -1,9 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, FileText, AlertCircle, ExternalLink, CheckCircle, Clock, Download } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Calendar, FileText, AlertCircle, CheckCircle, Clock, Download, Send, Save, Edit } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface AssignmentInfo {
   id: string;
@@ -27,12 +31,64 @@ interface AssignmentViewerProps {
 }
 
 export function AssignmentViewer({ cmid, activityUrl }: AssignmentViewerProps) {
-  const { data: assignment, isLoading } = useQuery<AssignmentInfo>({
+  const [isEditing, setIsEditing] = useState(false);
+  const [submissionText, setSubmissionText] = useState("");
+  const { toast } = useToast();
+
+  const { data: assignment, isLoading, refetch } = useQuery<AssignmentInfo>({
     queryKey: ["/api/assignment", cmid],
     queryFn: async () => {
       const res = await fetch(`/api/assignment/${cmid}`);
       if (!res.ok) throw new Error("Failed to fetch assignment");
       return res.json();
+    },
+  });
+
+  const saveSubmissionMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/assignment/${assignment?.id}/save`, { text: submissionText });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Saved",
+        description: "Your submission has been saved as a draft.",
+      });
+      setIsEditing(false);
+      refetch();
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save submission. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const submitForGradingMutation = useMutation({
+    mutationFn: async () => {
+      if (submissionText && submissionText !== assignment?.submittedText) {
+        await apiRequest("POST", `/api/assignment/${assignment?.id}/save`, { text: submissionText });
+      }
+      const res = await apiRequest("POST", `/api/assignment/${assignment?.id}/submit`);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Submitted",
+        description: "Your assignment has been submitted for grading!",
+      });
+      setIsEditing(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/assignment", cmid] });
+      refetch();
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to submit assignment. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -67,13 +123,13 @@ export function AssignmentViewer({ cmid, activityUrl }: AssignmentViewerProps) {
     }
   };
 
-  const handleOpenExternal = () => {
-    if (activityUrl) {
-      window.open(activityUrl, "_blank", "noopener,noreferrer");
-    }
+  const handleStartEditing = () => {
+    setSubmissionText(assignment?.submittedText || "");
+    setIsEditing(true);
   };
 
   const isOverdue = assignment?.dueDate && assignment.dueDate * 1000 < Date.now() && assignment.submissionStatus !== "submitted";
+  const canSubmit = assignment?.cutoffDate ? assignment.cutoffDate * 1000 > Date.now() : true;
 
   if (isLoading) {
     return (
@@ -93,12 +149,6 @@ export function AssignmentViewer({ cmid, activityUrl }: AssignmentViewerProps) {
         <p className="text-muted-foreground mb-4">
           Unable to load assignment information from Moodle.
         </p>
-        {activityUrl && (
-          <Button onClick={handleOpenExternal} data-testid="button-open-assign-external">
-            <ExternalLink className="mr-2 h-4 w-4" />
-            Open in Moodle
-          </Button>
-        )}
       </div>
     );
   }
@@ -188,36 +238,104 @@ export function AssignmentViewer({ cmid, activityUrl }: AssignmentViewerProps) {
         </div>
       )}
 
-      {assignment.submittedText && (
-        <div className="space-y-2">
-          <h4 className="font-medium">Submitted Text</h4>
-          <Card>
-            <CardContent className="py-4">
-              <div 
-                className="prose prose-sm dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: assignment.submittedText }}
-              />
-            </CardContent>
-          </Card>
+      {isEditing ? (
+        <div className="space-y-4">
+          <h4 className="font-medium">Your Submission</h4>
+          <Textarea
+            placeholder="Enter your submission text here..."
+            value={submissionText}
+            onChange={(e) => setSubmissionText(e.target.value)}
+            className="min-h-[200px]"
+            data-testid="textarea-submission"
+          />
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setIsEditing(false)}
+              disabled={saveSubmissionMutation.isPending || submitForGradingMutation.isPending}
+              data-testid="button-cancel-edit"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => saveSubmissionMutation.mutate()}
+              disabled={saveSubmissionMutation.isPending || submitForGradingMutation.isPending}
+              data-testid="button-save-draft"
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {saveSubmissionMutation.isPending ? "Saving..." : "Save Draft"}
+            </Button>
+            <Button
+              onClick={() => submitForGradingMutation.mutate()}
+              disabled={saveSubmissionMutation.isPending || submitForGradingMutation.isPending || !submissionText.trim()}
+              data-testid="button-submit-assignment"
+            >
+              <Send className="mr-2 h-4 w-4" />
+              {submitForGradingMutation.isPending ? "Submitting..." : "Submit for Grading"}
+            </Button>
+          </div>
         </div>
-      )}
+      ) : (
+        <>
+          {assignment.submittedText && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium">Your Submission</h4>
+                {canSubmit && assignment.submissionStatus !== "submitted" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleStartEditing}
+                    data-testid="button-edit-submission"
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                )}
+              </div>
+              <Card>
+                <CardContent className="py-4">
+                  <div 
+                    className="prose prose-sm dark:prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: assignment.submittedText }}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
-      {assignment.submissionStatus !== "submitted" && (
-        <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-          <p className="text-sm text-blue-800 dark:text-blue-200">
-            To submit your work, please use Moodle directly where you can upload files or enter your submission.
-          </p>
-        </div>
-      )}
+          {canSubmit && assignment.submissionStatus !== "submitted" && (
+            <div className="flex justify-center pt-4">
+              <Button
+                onClick={handleStartEditing}
+                data-testid="button-add-submission"
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                {assignment.submittedText ? "Edit Submission" : "Add Submission"}
+              </Button>
+            </div>
+          )}
 
-      <div className="flex justify-center pt-4">
-        {activityUrl && (
-          <Button onClick={handleOpenExternal} data-testid="button-submit-assignment">
-            <ExternalLink className="mr-2 h-4 w-4" />
-            {assignment.submissionStatus === "submitted" ? "View in Moodle" : "Submit in Moodle"}
-          </Button>
-        )}
-      </div>
+          {assignment.submissionStatus === "submitted" && (
+            <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800 text-center">
+              <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
+              <p className="text-sm text-green-800 dark:text-green-200">
+                Your assignment has been submitted and is awaiting grading.
+              </p>
+            </div>
+          )}
+
+          {!canSubmit && assignment.submissionStatus !== "submitted" && (
+            <div className="p-4 bg-amber-50 dark:bg-amber-950 rounded-lg border border-amber-200 dark:border-amber-800 text-center">
+              <AlertCircle className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                The submission deadline has passed. You can no longer submit this assignment.
+              </p>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
