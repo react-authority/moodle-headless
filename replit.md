@@ -20,6 +20,14 @@ Preferred communication style: Simple, everyday language.
 
 The frontend follows a page-based architecture with shared components. Pages include Dashboard, Courses, Course Detail, Calendar, Grades, and Settings. The application supports light/dark theme switching with system preference detection.
 
+### Native Activity Viewers
+Interactive Moodle content (quizzes, assignments, forums) displays in native API-based viewer components:
+- **QuizViewer**: Shows quiz info, attempt history, and question preview; guides users to Moodle for submission
+- **AssignmentViewer**: Displays assignment details, due dates, and submission status; links to Moodle for file uploads
+- **ForumViewer**: Shows discussions and posts with reply capability; supports creating new discussions via API
+
+These viewers provide a preview/read experience while directing users to Moodle for full interactive features like quiz answering and file submission.
+
 ### Backend Architecture
 - **Framework**: Express.js 5 running on Node.js
 - **Language**: TypeScript with ES modules
