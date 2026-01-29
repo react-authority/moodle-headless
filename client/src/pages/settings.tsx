@@ -1,7 +1,4 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { useQuery } from "@tanstack/react-query";
 import {
   Settings as SettingsIcon,
   Link as LinkIcon,
@@ -9,73 +6,32 @@ import {
   AlertCircle,
   ExternalLink,
   Info,
-  Eye,
-  EyeOff,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Alert,
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
-import { useToast } from "@/hooks/use-toast";
 
-const connectionSchema = z.object({
-  siteUrl: z.string().url("Please enter a valid URL"),
-  token: z.string().min(1, "Token is required"),
-});
-
-type ConnectionFormValues = z.infer<typeof connectionSchema>;
+interface ConnectionStatus {
+  connected: boolean;
+  siteUrl: string;
+}
 
 export default function Settings() {
-  const [showToken, setShowToken] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
-  const { toast } = useToast();
-
-  const form = useForm<ConnectionFormValues>({
-    resolver: zodResolver(connectionSchema),
-    defaultValues: {
-      siteUrl: "",
-      token: "",
-    },
+  const { data: status, isLoading } = useQuery<ConnectionStatus>({
+    queryKey: ["/api/status"],
   });
 
-  const onSubmit = async (data: ConnectionFormValues) => {
-    setIsTestingConnection(true);
-    // Simulate connection test
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsTestingConnection(false);
-    setIsConnected(true);
-    toast({
-      title: "Connection successful",
-      description: "Your Moodle instance has been connected.",
-    });
-  };
-
-  const handleDisconnect = () => {
-    setIsConnected(false);
-    form.reset();
-    toast({
-      title: "Disconnected",
-      description: "Your Moodle connection has been removed.",
-    });
-  };
+  const isConnected = status?.connected || false;
+  const siteUrl = status?.siteUrl || "";
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
@@ -96,110 +52,31 @@ export default function Settings() {
                 Moodle Connection
               </CardTitle>
               <CardDescription>
-                Connect to your Moodle instance to sync courses and data
+                Connection to your Moodle instance
               </CardDescription>
             </div>
-            <Badge variant={isConnected ? "default" : "secondary"}>
-              {isConnected ? (
-                <>
-                  <CheckCircle2 className="mr-1 h-3 w-3" />
-                  Connected
-                </>
-              ) : (
-                "Not Connected"
-              )}
-            </Badge>
+            {isLoading ? (
+              <Skeleton className="h-6 w-24" />
+            ) : (
+              <Badge variant={isConnected ? "default" : "secondary"} data-testid="badge-connection-status">
+                {isConnected ? (
+                  <>
+                    <CheckCircle2 className="mr-1 h-3 w-3" />
+                    Connected
+                  </>
+                ) : (
+                  "Not Connected"
+                )}
+              </Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!isConnected ? (
-            <>
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>How to get a Web Service Token</AlertTitle>
-                <AlertDescription className="mt-2 space-y-2">
-                  <p>To connect MoodleHub to your Moodle instance, you need a web service token:</p>
-                  <ol className="list-decimal list-inside space-y-1 text-sm">
-                    <li>Log in to your Moodle site as an admin</li>
-                    <li>Go to Site administration → Plugins → Web services → Manage tokens</li>
-                    <li>Create a new token with the "Moodle mobile web service" or a custom service</li>
-                    <li>Copy the token and paste it below</li>
-                  </ol>
-                </AlertDescription>
-              </Alert>
-
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="siteUrl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Moodle Site URL</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="https://moodle.example.com"
-                            {...field}
-                            data-testid="input-site-url"
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          The base URL of your Moodle installation
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="token"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Web Service Token</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Input
-                              type={showToken ? "text" : "password"}
-                              placeholder="Enter your Moodle token"
-                              {...field}
-                              className="pr-10"
-                              data-testid="input-token"
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="absolute right-0 top-0 h-full"
-                              onClick={() => setShowToken(!showToken)}
-                            >
-                              {showToken ? (
-                                <EyeOff className="h-4 w-4" />
-                              ) : (
-                                <Eye className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </div>
-                        </FormControl>
-                        <FormDescription>
-                          Your Moodle web service token for API access
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <Button
-                    type="submit"
-                    disabled={isTestingConnection}
-                    data-testid="button-connect"
-                  >
-                    {isTestingConnection ? "Testing Connection..." : "Connect to Moodle"}
-                  </Button>
-                </form>
-              </Form>
-            </>
-          ) : (
+          {isLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-20 w-full" />
+            </div>
+          ) : isConnected ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                 <div className="flex items-center gap-3">
@@ -207,43 +84,73 @@ export default function Settings() {
                     <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
                   </div>
                   <div>
-                    <p className="font-medium">Connected to Moodle</p>
-                    <p className="text-sm text-muted-foreground">
-                      {form.getValues("siteUrl") || "demo.moodle.net"}
+                    <p className="font-medium" data-testid="text-connection-status">Connected to Moodle</p>
+                    <p className="text-sm text-muted-foreground" data-testid="text-site-url">
+                      {siteUrl}
                     </p>
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDisconnect}
-                  data-testid="button-disconnect"
-                >
-                  Disconnect
-                </Button>
               </div>
               <p className="text-sm text-muted-foreground">
-                Your courses and data are synced automatically. Last sync: Just now
+                Your courses and data are synced automatically from your Moodle instance.
+                Connection is configured via environment variables.
               </p>
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>Server-side Configuration</AlertTitle>
+                <AlertDescription>
+                  The Moodle connection is configured using environment variables (MOODLE_URL and MOODLE_TOKEN).
+                  To change the connection, update these variables in your server configuration.
+                </AlertDescription>
+              </Alert>
             </div>
+          ) : (
+            <>
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Demo Mode Active</AlertTitle>
+                <AlertDescription className="mt-2 space-y-2">
+                  <p>MoodleHub is running in demo mode with sample data.</p>
+                  <p className="text-sm">
+                    To connect to a real Moodle instance, set the following environment variables:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-sm mt-2">
+                    <li><code className="bg-muted px-1 rounded">MOODLE_URL</code> - Your Moodle site URL</li>
+                    <li><code className="bg-muted px-1 rounded">MOODLE_TOKEN</code> - Web service token</li>
+                  </ul>
+                </AlertDescription>
+              </Alert>
+
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>How to get a Web Service Token</AlertTitle>
+                <AlertDescription className="mt-2 space-y-2">
+                  <ol className="list-decimal list-inside space-y-1 text-sm">
+                    <li>Log in to your Moodle site as an admin</li>
+                    <li>Go to Site administration - Plugins - Web services - Manage tokens</li>
+                    <li>Create a new token with the "Moodle mobile web service" or a custom service</li>
+                    <li>Copy the token and set it as the MOODLE_TOKEN environment variable</li>
+                  </ol>
+                </AlertDescription>
+              </Alert>
+            </>
           )}
         </CardContent>
       </Card>
 
-      {/* Demo Mode Notice */}
+      {/* Documentation Links */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-orange-500" />
-            Demo Mode
+            <ExternalLink className="h-4 w-4" />
+            Resources
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-4">
-            MoodleHub is currently running in demo mode with sample data. Connect to a real 
-            Moodle instance to see your actual courses, grades, and calendar events.
+            Learn more about Moodle Web Services and explore demo instances.
           </p>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap gap-3">
             <Button variant="outline" size="sm" asChild>
               <a
                 href="https://moodledev.io/docs/5.2/apis/subsystems/external"
@@ -316,7 +223,7 @@ export default function Settings() {
           <p className="text-sm text-muted-foreground mb-4">
             MoodleHub is a headless frontend for Moodle LMS, built with modern web technologies.
             It provides a beautiful, responsive interface to access your Moodle courses, assignments,
-            and grades.
+            quizzes, forums, and grades.
           </p>
           <div className="flex flex-wrap gap-2">
             <Badge variant="secondary">React</Badge>

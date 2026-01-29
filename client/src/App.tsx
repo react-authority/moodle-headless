@@ -12,6 +12,11 @@ import Courses from "@/pages/courses";
 import CourseDetail from "@/pages/course-detail";
 import CalendarPage from "@/pages/calendar-page";
 import Grades from "@/pages/grades";
+import Assignments from "@/pages/assignments";
+import Quizzes from "@/pages/quizzes";
+import Forums from "@/pages/forums";
+import Notifications from "@/pages/notifications";
+import Badges from "@/pages/badges";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
@@ -23,6 +28,11 @@ function Router() {
       <Route path="/courses/:id" component={CourseDetail} />
       <Route path="/calendar" component={CalendarPage} />
       <Route path="/grades" component={Grades} />
+      <Route path="/assignments" component={Assignments} />
+      <Route path="/quizzes" component={Quizzes} />
+      <Route path="/forums" component={Forums} />
+      <Route path="/notifications" component={Notifications} />
+      <Route path="/badges" component={Badges} />
       <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>

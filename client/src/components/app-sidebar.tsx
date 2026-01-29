@@ -8,6 +8,11 @@ import {
   Settings,
   LogOut,
   ChevronUp,
+  ClipboardList,
+  FileQuestion,
+  MessageSquare,
+  Bell,
+  Award,
 } from "lucide-react";
 import type { User } from "@shared/schema";
 import {
@@ -21,6 +26,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuBadge,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -43,6 +49,21 @@ const mainNavItems = [
     icon: BookOpen,
   },
   {
+    title: "Assignments",
+    url: "/assignments",
+    icon: ClipboardList,
+  },
+  {
+    title: "Quizzes",
+    url: "/quizzes",
+    icon: FileQuestion,
+  },
+  {
+    title: "Forums",
+    url: "/forums",
+    icon: MessageSquare,
+  },
+  {
     title: "Calendar",
     url: "/calendar",
     icon: Calendar,
@@ -54,7 +75,17 @@ const mainNavItems = [
   },
 ];
 
-const settingsNavItems = [
+const secondaryNavItems = [
+  {
+    title: "Notifications",
+    url: "/notifications",
+    icon: Bell,
+  },
+  {
+    title: "Badges",
+    url: "/badges",
+    icon: Award,
+  },
   {
     title: "Settings",
     url: "/settings",
@@ -69,6 +100,11 @@ export function AppSidebar() {
     queryKey: ["/api/user"],
   });
 
+  const { data: notifCount } = useQuery<{ count: number }>({
+    queryKey: ["/api/notifications/count"],
+    refetchInterval: 60000,
+  });
+
   const userInitials = user
     ? `${user.firstname?.[0] || ""}${user.lastname?.[0] || ""}`.toUpperCase() || "U"
     : "U";
@@ -81,6 +117,8 @@ export function AppSidebar() {
   const handleNavigation = (url: string) => {
     setLocation(url);
   };
+
+  const unreadCount = notifCount?.count || 0;
 
   return (
     <Sidebar>
@@ -118,10 +156,10 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>System</SidebarGroupLabel>
+          <SidebarGroupLabel>Account</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {settingsNavItems.map((item) => (
+              {secondaryNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     isActive={isActive(item.url)}
@@ -130,6 +168,9 @@ export function AppSidebar() {
                   >
                     <item.icon className="h-4 w-4" />
                     <span>{item.title}</span>
+                    {item.url === "/notifications" && unreadCount > 0 && (
+                      <SidebarMenuBadge>{unreadCount}</SidebarMenuBadge>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -168,11 +209,19 @@ export function AppSidebar() {
                 side="top"
                 align="start"
               >
-                <DropdownMenuItem data-testid="menu-item-profile">
-                  View Profile
+                <DropdownMenuItem
+                  onClick={() => handleNavigation("/badges")}
+                  data-testid="menu-item-badges"
+                >
+                  <Award className="mr-2 h-4 w-4" />
+                  My Badges
                 </DropdownMenuItem>
-                <DropdownMenuItem data-testid="menu-item-preferences">
-                  Preferences
+                <DropdownMenuItem
+                  onClick={() => handleNavigation("/settings")}
+                  data-testid="menu-item-settings"
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
