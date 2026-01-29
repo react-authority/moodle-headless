@@ -1,4 +1,5 @@
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   BookOpen,
@@ -8,6 +9,7 @@ import {
   LogOut,
   ChevronUp,
 } from "lucide-react";
+import type { User } from "@shared/schema";
 import {
   Sidebar,
   SidebarContent,
@@ -62,6 +64,14 @@ const settingsNavItems = [
 
 export function AppSidebar() {
   const [location, setLocation] = useLocation();
+
+  const { data: user } = useQuery<User>({
+    queryKey: ["/api/user"],
+  });
+
+  const userInitials = user
+    ? `${user.firstname?.[0] || ""}${user.lastname?.[0] || ""}`.toUpperCase() || "U"
+    : "U";
 
   const isActive = (url: string) => {
     if (url === "/") return location === "/";
@@ -139,15 +149,15 @@ export function AppSidebar() {
                   data-testid="button-user-menu"
                 >
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src="" alt="User" />
+                    <AvatarImage src={user?.profileimageurl || ""} alt={user?.fullname || "User"} />
                     <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                      JS
+                      {userInitials}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col items-start text-left text-sm">
-                    <span className="font-medium">John Student</span>
+                    <span className="font-medium">{user?.fullname || "User"}</span>
                     <span className="text-xs text-muted-foreground">
-                      john.student@example.com
+                      {user?.email || "Loading..."}
                     </span>
                   </div>
                   <ChevronUp className="ml-auto h-4 w-4" />

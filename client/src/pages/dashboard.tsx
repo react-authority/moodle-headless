@@ -17,10 +17,14 @@ import { StatsCard } from "@/components/stats-card";
 import { CourseCard } from "@/components/course-card";
 import { ActivityItem } from "@/components/activity-item";
 import { CalendarEventCard } from "@/components/calendar-event-card";
-import type { Course, Activity, CalendarEvent } from "@shared/schema";
+import type { Course, Activity, CalendarEvent, User } from "@shared/schema";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
+
+  const { data: user } = useQuery<User>({
+    queryKey: ["/api/user"],
+  });
 
   const { data: courses, isLoading: coursesLoading } = useQuery<Course[]>({
     queryKey: ["/api/courses"],
@@ -55,7 +59,7 @@ export default function Dashboard() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">Welcome back, John!</h1>
+        <h1 className="text-2xl font-bold">Welcome back, {user?.firstname || "Learner"}!</h1>
         <p className="text-muted-foreground mt-1">
           Here's an overview of your learning progress
         </p>
