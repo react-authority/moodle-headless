@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import {
   FileText,
   ClipboardList,
@@ -9,14 +11,17 @@ import {
   CheckCircle2,
   Circle,
   Clock,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { Activity, ActivityType } from "@shared/schema";
 
 interface ActivityItemProps {
   activity: Activity;
   showDueDate?: boolean;
+  showCompletionToggle?: boolean;
 }
 
 const activityIcons: Record<ActivityType, typeof FileText> = {
@@ -67,9 +72,37 @@ const activityLabels: Record<ActivityType, string> = {
   lti: "External Tool",
 };
 
-export function ActivityItem({ activity, showDueDate = true }: ActivityItemProps) {
+export function ActivityItem({ activity, showDueDate = true, showCompletionToggle = false }: ActivityItemProps) {
   const Icon = activityIcons[activity.modname] || FileText;
   const label = activityLabels[activity.modname] || activity.modname;
+  const [localCompleted, setLocalCompleted] = useState(activity.completed);
+
+  useEffect(() => {
+    setLocalCompleted(activity.completed);
+  }, [activity.completed]);
+
+  const completionMutation = useMutation({
+    mutationFn: async (completed: boolean) => {
+      await apiRequest("POST", `/api/activities/${activity.id}/completion`, { completed });
+    },
+    onMutate: async (completed) => {
+      setLocalCompleted(completed);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/courses", activity.courseid, "activities"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activities/upcoming"] });
+    },
+    onError: () => {
+      setLocalCompleted(activity.completed);
+    },
+  });
+
+  const handleToggleCompletion = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    completionMutation.mutate(!localCompleted);
+  };
+
+  const isCompleted = localCompleted;
 
   const formatDueDate = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
@@ -94,7 +127,22 @@ export function ActivityItem({ activity, showDueDate = true }: ActivityItemProps
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 mt-0.5">
-            {activity.completed ? (
+            {showCompletionToggle ? (
+              <button
+                onClick={handleToggleCompletion}
+                disabled={completionMutation.isPending}
+                className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-full"
+                data-testid={`button-toggle-completion-${activity.id}`}
+              >
+                {completionMutation.isPending ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                ) : isCompleted ? (
+                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                ) : (
+                  <Circle className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                )}
+              </button>
+            ) : isCompleted ? (
               <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
             ) : (
               <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted">
@@ -105,7 +153,7 @@ export function ActivityItem({ activity, showDueDate = true }: ActivityItemProps
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <h4 className={`font-medium text-sm ${activity.completed ? "line-through text-muted-foreground" : ""}`}>
+                <h4 className={`font-medium text-sm ${isCompleted ? "line-through text-muted-foreground" : ""}`}>
                   {activity.name}
                 </h4>
                 {activity.description && (

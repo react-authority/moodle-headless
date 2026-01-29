@@ -184,9 +184,8 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-sidebar-accent"
+                <button
+                  className="peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent h-12"
                   data-testid="button-user-menu"
                 >
                   <Avatar className="h-8 w-8">
@@ -202,7 +201,7 @@ export function AppSidebar() {
                     </span>
                   </div>
                   <ChevronUp className="ml-auto h-4 w-4" />
-                </SidebarMenuButton>
+                </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 className="w-[--radix-dropdown-menu-trigger-width]"

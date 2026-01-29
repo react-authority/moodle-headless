@@ -181,6 +181,7 @@ export default function CourseDetail() {
                                   key={activity.id}
                                   activity={activity}
                                   showDueDate={false}
+                                  showCompletionToggle={true}
                                 />
                               ))
                             ) : (
