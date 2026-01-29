@@ -12,6 +12,7 @@ import {
   Circle,
   Clock,
   Loader2,
+  ExternalLink,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -119,9 +120,16 @@ export function ActivityItem({ activity, showDueDate = true, showCompletionToggl
 
   const dueInfo = activity.duedate ? formatDueDate(activity.duedate) : null;
 
+  const handleOpenActivity = () => {
+    if (activity.url) {
+      window.open(activity.url, "_blank", "noopener,noreferrer");
+    }
+  };
+
   return (
     <Card
-      className="hover-elevate cursor-pointer transition-all duration-200 overflow-visible"
+      className={`hover-elevate transition-all duration-200 overflow-visible ${activity.url ? "cursor-pointer" : ""}`}
+      onClick={activity.url ? handleOpenActivity : undefined}
       data-testid={`activity-${activity.id}`}
     >
       <CardContent className="p-4">
@@ -162,9 +170,14 @@ export function ActivityItem({ activity, showDueDate = true, showCompletionToggl
                   </p>
                 )}
               </div>
-              <Badge variant="secondary" className="text-xs flex-shrink-0">
-                {label}
-              </Badge>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Badge variant="secondary" className="text-xs">
+                  {label}
+                </Badge>
+                {activity.url && (
+                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                )}
+              </div>
             </div>
             {showDueDate && dueInfo && (
               <div className={`flex items-center gap-1 mt-2 text-xs ${dueInfo.className}`}>
