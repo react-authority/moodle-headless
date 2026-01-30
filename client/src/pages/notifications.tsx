@@ -127,7 +127,7 @@ export default function Notifications() {
                       )}
                       {notification.contexturl && (
                         <Button
-                          variant="link"
+                          variant="ghost"
                           size="sm"
                           className="h-auto p-0 text-xs"
                           asChild

@@ -7,7 +7,7 @@ import type {
   CalendarEvent,
   GradeItem,
 } from "@shared/schema";
-import * as moodleClient from "./moodle-client";
+import * as moodleClient from "./moodle-api";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;

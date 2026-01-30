@@ -255,7 +255,7 @@ export async function registerRoutes(
   // Get quiz info
   app.get("/api/quiz/:cmid", async (req, res) => {
     try {
-      const { getQuizInfo } = await import("./moodle-client");
+      const { getQuizInfo } = await import("./moodle-api");
       const quiz = await getQuizInfo(req.params.cmid);
       if (!quiz) {
         return res.status(404).json({ error: "Quiz not found" });
@@ -269,7 +269,7 @@ export async function registerRoutes(
   // Get quiz attempts
   app.get("/api/quiz/:quizId/attempts", async (req, res) => {
     try {
-      const { getQuizAttempts } = await import("./moodle-client");
+      const { getQuizAttempts } = await import("./moodle-api");
       const attempts = await getQuizAttempts(req.params.quizId);
       res.json(attempts || { attempts: [] });
     } catch (error) {
@@ -280,7 +280,7 @@ export async function registerRoutes(
   // Start quiz attempt
   app.post("/api/quiz/:quizId/start", async (req, res) => {
     try {
-      const { startQuizAttempt } = await import("./moodle-client");
+      const { startQuizAttempt } = await import("./moodle-api");
       const result = await startQuizAttempt(req.params.quizId);
       if (!result) {
         return res.status(400).json({ error: "Failed to start quiz attempt" });
@@ -294,7 +294,7 @@ export async function registerRoutes(
   // Get quiz attempt data
   app.get("/api/quiz/attempt/:attemptId", async (req, res) => {
     try {
-      const { getQuizAttemptData } = await import("./moodle-client");
+      const { getQuizAttemptData } = await import("./moodle-api");
       const page = parseInt(req.query.page as string) || 0;
       const data = await getQuizAttemptData(req.params.attemptId, page);
       if (!data) {
@@ -309,7 +309,7 @@ export async function registerRoutes(
   // Save quiz answers
   app.post("/api/quiz/attempt/:attemptId/save", async (req, res) => {
     try {
-      const { saveQuizAttempt } = await import("./moodle-client");
+      const { saveQuizAttempt } = await import("./moodle-api");
       const success = await saveQuizAttempt(req.params.attemptId, req.body.data);
       res.json({ success });
     } catch (error) {
@@ -320,7 +320,7 @@ export async function registerRoutes(
   // Finish quiz attempt
   app.post("/api/quiz/attempt/:attemptId/finish", async (req, res) => {
     try {
-      const { finishQuizAttempt } = await import("./moodle-client");
+      const { finishQuizAttempt } = await import("./moodle-api");
       const success = await finishQuizAttempt(req.params.attemptId);
       res.json({ success });
     } catch (error) {
@@ -331,7 +331,7 @@ export async function registerRoutes(
   // Get quiz attempt review
   app.get("/api/quiz/attempt/:attemptId/review", async (req, res) => {
     try {
-      const { getQuizAttemptReview } = await import("./moodle-client");
+      const { getQuizAttemptReview } = await import("./moodle-api");
       const review = await getQuizAttemptReview(req.params.attemptId);
       if (!review) {
         return res.status(404).json({ error: "Review not found" });
@@ -347,7 +347,7 @@ export async function registerRoutes(
   // Get assignment info
   app.get("/api/assignment/:cmid", async (req, res) => {
     try {
-      const { getAssignmentInfo } = await import("./moodle-client");
+      const { getAssignmentInfo } = await import("./moodle-api");
       const assignment = await getAssignmentInfo(req.params.cmid);
       if (!assignment) {
         return res.status(404).json({ error: "Assignment not found" });
@@ -361,7 +361,7 @@ export async function registerRoutes(
   // Save assignment submission (text/online text)
   app.post("/api/assignment/:assignId/save", async (req, res) => {
     try {
-      const { saveAssignmentSubmission } = await import("./moodle-client");
+      const { saveAssignmentSubmission } = await import("./moodle-api");
       const { text } = req.body;
       const result = await saveAssignmentSubmission(req.params.assignId, text);
       if (!result.success) {
@@ -376,7 +376,7 @@ export async function registerRoutes(
   // Submit assignment for grading
   app.post("/api/assignment/:assignId/submit", async (req, res) => {
     try {
-      const { submitAssignmentForGrading } = await import("./moodle-client");
+      const { submitAssignmentForGrading } = await import("./moodle-api");
       const result = await submitAssignmentForGrading(req.params.assignId);
       if (!result.success) {
         return res.status(400).json({ error: result.error || "Failed to submit for grading" });
@@ -392,7 +392,7 @@ export async function registerRoutes(
   // Get forum info
   app.get("/api/forum/:cmid", async (req, res) => {
     try {
-      const { getForumInfo } = await import("./moodle-client");
+      const { getForumInfo } = await import("./moodle-api");
       const forum = await getForumInfo(req.params.cmid);
       if (!forum) {
         return res.status(404).json({ error: "Forum not found" });
@@ -406,7 +406,7 @@ export async function registerRoutes(
   // Get forum discussions
   app.get("/api/forum/:forumId/discussions", async (req, res) => {
     try {
-      const { getForumDiscussions } = await import("./moodle-client");
+      const { getForumDiscussions } = await import("./moodle-api");
       const discussions = await getForumDiscussions(req.params.forumId);
       res.json(discussions);
     } catch (error) {
@@ -417,7 +417,7 @@ export async function registerRoutes(
   // Get discussion posts
   app.get("/api/forum/discussion/:discussionId/posts", async (req, res) => {
     try {
-      const { getForumDiscussionPosts } = await import("./moodle-client");
+      const { getForumDiscussionPosts } = await import("./moodle-api");
       const posts = await getForumDiscussionPosts(req.params.discussionId);
       res.json(posts);
     } catch (error) {
@@ -428,7 +428,7 @@ export async function registerRoutes(
   // Add discussion
   app.post("/api/forum/:forumId/discussions", async (req, res) => {
     try {
-      const { addForumDiscussion } = await import("./moodle-client");
+      const { addForumDiscussion } = await import("./moodle-api");
       const { subject, message } = req.body;
       const result = await addForumDiscussion(req.params.forumId, subject, message);
       if (!result) {
@@ -443,7 +443,7 @@ export async function registerRoutes(
   // Add post to discussion
   app.post("/api/forum/discussion/:discussionId/posts", async (req, res) => {
     try {
-      const { addForumPost } = await import("./moodle-client");
+      const { addForumPost } = await import("./moodle-api");
       const { parentId, subject, message } = req.body;
       const result = await addForumPost(req.params.discussionId, parentId, subject, message);
       if (!result) {
@@ -459,7 +459,7 @@ export async function registerRoutes(
 
   app.get("/api/lesson/:cmid", async (req, res) => {
     try {
-      const { getLessonInfo } = await import("./moodle-client");
+      const { getLessonInfo } = await import("./moodle-api");
       const lesson = await getLessonInfo(req.params.cmid);
       if (!lesson) {
         return res.status(404).json({ error: "Lesson not found" });
@@ -472,7 +472,7 @@ export async function registerRoutes(
 
   app.get("/api/lesson/:lessonId/pages", async (req, res) => {
     try {
-      const { getLessonPages } = await import("./moodle-client");
+      const { getLessonPages } = await import("./moodle-api");
       const pages = await getLessonPages(req.params.lessonId);
       res.json(pages);
     } catch (error) {
@@ -482,7 +482,7 @@ export async function registerRoutes(
 
   app.get("/api/lessons", async (_req, res) => {
     try {
-      const { getAllLessons } = await import("./moodle-client");
+      const { getAllLessons } = await import("./moodle-api");
       const lessons = await getAllLessons();
       res.json(lessons);
     } catch (error) {
@@ -494,7 +494,7 @@ export async function registerRoutes(
 
   app.get("/api/scorm/:cmid", async (req, res) => {
     try {
-      const { getScormInfo } = await import("./moodle-client");
+      const { getScormInfo } = await import("./moodle-api");
       const scorm = await getScormInfo(req.params.cmid);
       if (!scorm) {
         return res.status(404).json({ error: "SCORM not found" });
@@ -507,7 +507,7 @@ export async function registerRoutes(
 
   app.get("/api/scorm/:scormId/scoes", async (req, res) => {
     try {
-      const { getScormScoes } = await import("./moodle-client");
+      const { getScormScoes } = await import("./moodle-api");
       const scoes = await getScormScoes(req.params.scormId);
       res.json(scoes);
     } catch (error) {
@@ -517,7 +517,7 @@ export async function registerRoutes(
 
   app.get("/api/scorm/:scormId/attempts", async (req, res) => {
     try {
-      const { getScormAttemptCount } = await import("./moodle-client");
+      const { getScormAttemptCount } = await import("./moodle-api");
       const count = await getScormAttemptCount(req.params.scormId);
       res.json({ count });
     } catch (error) {
@@ -527,7 +527,7 @@ export async function registerRoutes(
 
   app.get("/api/scorms", async (_req, res) => {
     try {
-      const { getAllScorms } = await import("./moodle-client");
+      const { getAllScorms } = await import("./moodle-api");
       const scorms = await getAllScorms();
       res.json(scorms);
     } catch (error) {
@@ -539,7 +539,7 @@ export async function registerRoutes(
 
   app.get("/api/h5p/:cmid", async (req, res) => {
     try {
-      const { getH5pActivityInfo } = await import("./moodle-client");
+      const { getH5pActivityInfo } = await import("./moodle-api");
       const h5p = await getH5pActivityInfo(req.params.cmid);
       if (!h5p) {
         return res.status(404).json({ error: "H5P activity not found" });
@@ -552,7 +552,7 @@ export async function registerRoutes(
 
   app.get("/api/h5p/:h5pId/attempts", async (req, res) => {
     try {
-      const { getH5pAttempts } = await import("./moodle-client");
+      const { getH5pAttempts } = await import("./moodle-api");
       const attempts = await getH5pAttempts(req.params.h5pId);
       res.json(attempts);
     } catch (error) {
@@ -562,7 +562,7 @@ export async function registerRoutes(
 
   app.get("/api/h5pactivities", async (_req, res) => {
     try {
-      const { getAllH5pActivities } = await import("./moodle-client");
+      const { getAllH5pActivities } = await import("./moodle-api");
       const h5pactivities = await getAllH5pActivities();
       res.json(h5pactivities);
     } catch (error) {
@@ -574,7 +574,7 @@ export async function registerRoutes(
 
   app.get("/api/wiki/:cmid", async (req, res) => {
     try {
-      const { getWikiInfo } = await import("./moodle-client");
+      const { getWikiInfo } = await import("./moodle-api");
       const wiki = await getWikiInfo(req.params.cmid);
       if (!wiki) {
         return res.status(404).json({ error: "Wiki not found" });
@@ -587,7 +587,7 @@ export async function registerRoutes(
 
   app.get("/api/wiki/:wikiId/subwikis", async (req, res) => {
     try {
-      const { getWikiSubwikis } = await import("./moodle-client");
+      const { getWikiSubwikis } = await import("./moodle-api");
       const subwikis = await getWikiSubwikis(req.params.wikiId);
       res.json(subwikis);
     } catch (error) {
@@ -597,7 +597,7 @@ export async function registerRoutes(
 
   app.get("/api/wiki/subwiki/:subwikiId/pages", async (req, res) => {
     try {
-      const { getWikiPages } = await import("./moodle-client");
+      const { getWikiPages } = await import("./moodle-api");
       const pages = await getWikiPages(req.params.subwikiId);
       res.json(pages);
     } catch (error) {
@@ -607,7 +607,7 @@ export async function registerRoutes(
 
   app.get("/api/wiki/page/:pageId", async (req, res) => {
     try {
-      const { getWikiPageContents } = await import("./moodle-client");
+      const { getWikiPageContents } = await import("./moodle-api");
       const page = await getWikiPageContents(req.params.pageId);
       if (!page) {
         return res.status(404).json({ error: "Wiki page not found" });
@@ -620,7 +620,7 @@ export async function registerRoutes(
 
   app.get("/api/wikis", async (_req, res) => {
     try {
-      const { getAllWikis } = await import("./moodle-client");
+      const { getAllWikis } = await import("./moodle-api");
       const wikis = await getAllWikis();
       res.json(wikis);
     } catch (error) {
@@ -632,7 +632,7 @@ export async function registerRoutes(
 
   app.get("/api/glossary/:cmid", async (req, res) => {
     try {
-      const { getGlossaryInfo } = await import("./moodle-client");
+      const { getGlossaryInfo } = await import("./moodle-api");
       const glossary = await getGlossaryInfo(req.params.cmid);
       if (!glossary) {
         return res.status(404).json({ error: "Glossary not found" });
@@ -645,7 +645,7 @@ export async function registerRoutes(
 
   app.get("/api/glossary/:glossaryId/entries", async (req, res) => {
     try {
-      const { getGlossaryEntries } = await import("./moodle-client");
+      const { getGlossaryEntries } = await import("./moodle-api");
       const letter = (req.query.letter as string) || "ALL";
       const from = parseInt(req.query.from as string) || 0;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -658,7 +658,7 @@ export async function registerRoutes(
 
   app.get("/api/glossary/entry/:entryId", async (req, res) => {
     try {
-      const { getGlossaryEntry } = await import("./moodle-client");
+      const { getGlossaryEntry } = await import("./moodle-api");
       const entry = await getGlossaryEntry(req.params.entryId);
       if (!entry) {
         return res.status(404).json({ error: "Glossary entry not found" });
@@ -671,7 +671,7 @@ export async function registerRoutes(
 
   app.get("/api/glossaries", async (_req, res) => {
     try {
-      const { getAllGlossaries } = await import("./moodle-client");
+      const { getAllGlossaries } = await import("./moodle-api");
       const glossaries = await getAllGlossaries();
       res.json(glossaries);
     } catch (error) {
@@ -683,7 +683,7 @@ export async function registerRoutes(
 
   app.get("/api/folder/:cmid", async (req, res) => {
     try {
-      const { getFolderInfo } = await import("./moodle-client");
+      const { getFolderInfo } = await import("./moodle-api");
       const folder = await getFolderInfo(req.params.cmid);
       if (!folder) {
         return res.status(404).json({ error: "Folder not found" });
@@ -696,7 +696,7 @@ export async function registerRoutes(
 
   app.get("/api/folders", async (_req, res) => {
     try {
-      const { getAllFolders } = await import("./moodle-client");
+      const { getAllFolders } = await import("./moodle-api");
       const folders = await getAllFolders();
       res.json(folders);
     } catch (error) {
@@ -708,7 +708,7 @@ export async function registerRoutes(
 
   app.get("/api/choice/:cmid", async (req, res) => {
     try {
-      const { getChoiceInfo } = await import("./moodle-client");
+      const { getChoiceInfo } = await import("./moodle-api");
       const choice = await getChoiceInfo(req.params.cmid);
       if (!choice) {
         return res.status(404).json({ error: "Choice not found" });
@@ -721,7 +721,7 @@ export async function registerRoutes(
 
   app.get("/api/choice/:choiceId/options", async (req, res) => {
     try {
-      const { getChoiceOptions } = await import("./moodle-client");
+      const { getChoiceOptions } = await import("./moodle-api");
       const options = await getChoiceOptions(req.params.choiceId);
       res.json(options);
     } catch (error) {
@@ -731,7 +731,7 @@ export async function registerRoutes(
 
   app.get("/api/choice/:choiceId/results", async (req, res) => {
     try {
-      const { getChoiceResults } = await import("./moodle-client");
+      const { getChoiceResults } = await import("./moodle-api");
       const results = await getChoiceResults(req.params.choiceId);
       res.json(results);
     } catch (error) {
@@ -741,7 +741,7 @@ export async function registerRoutes(
 
   app.post("/api/choice/:choiceId/submit", async (req, res) => {
     try {
-      const { submitChoice } = await import("./moodle-client");
+      const { submitChoice } = await import("./moodle-api");
       const { responses } = req.body;
       const success = await submitChoice(req.params.choiceId, responses);
       res.json({ success });
@@ -752,7 +752,7 @@ export async function registerRoutes(
 
   app.get("/api/choices", async (_req, res) => {
     try {
-      const { getAllChoices } = await import("./moodle-client");
+      const { getAllChoices } = await import("./moodle-api");
       const choices = await getAllChoices();
       res.json(choices);
     } catch (error) {
@@ -764,7 +764,7 @@ export async function registerRoutes(
 
   app.get("/api/feedback/:cmid", async (req, res) => {
     try {
-      const { getFeedbackInfo } = await import("./moodle-client");
+      const { getFeedbackInfo } = await import("./moodle-api");
       const feedback = await getFeedbackInfo(req.params.cmid);
       if (!feedback) {
         return res.status(404).json({ error: "Feedback not found" });
@@ -777,7 +777,7 @@ export async function registerRoutes(
 
   app.get("/api/feedback/:feedbackId/items", async (req, res) => {
     try {
-      const { getFeedbackItems } = await import("./moodle-client");
+      const { getFeedbackItems } = await import("./moodle-api");
       const items = await getFeedbackItems(req.params.feedbackId);
       res.json(items);
     } catch (error) {
@@ -787,7 +787,7 @@ export async function registerRoutes(
 
   app.get("/api/feedbacks", async (_req, res) => {
     try {
-      const { getAllFeedbacks } = await import("./moodle-client");
+      const { getAllFeedbacks } = await import("./moodle-api");
       const feedbacks = await getAllFeedbacks();
       res.json(feedbacks);
     } catch (error) {
@@ -799,7 +799,7 @@ export async function registerRoutes(
 
   app.get("/api/data/:cmid", async (req, res) => {
     try {
-      const { getDataInfo } = await import("./moodle-client");
+      const { getDataInfo } = await import("./moodle-api");
       const data = await getDataInfo(req.params.cmid);
       if (!data) {
         return res.status(404).json({ error: "Database not found" });
@@ -812,7 +812,7 @@ export async function registerRoutes(
 
   app.get("/api/data/:dataId/fields", async (req, res) => {
     try {
-      const { getDataFields } = await import("./moodle-client");
+      const { getDataFields } = await import("./moodle-api");
       const fields = await getDataFields(req.params.dataId);
       res.json(fields);
     } catch (error) {
@@ -822,7 +822,7 @@ export async function registerRoutes(
 
   app.get("/api/data/:dataId/entries", async (req, res) => {
     try {
-      const { getDataEntries } = await import("./moodle-client");
+      const { getDataEntries } = await import("./moodle-api");
       const page = parseInt(req.query.page as string) || 0;
       const perpage = parseInt(req.query.perpage as string) || 10;
       const entries = await getDataEntries(req.params.dataId, page, perpage);
@@ -834,7 +834,7 @@ export async function registerRoutes(
 
   app.get("/api/databases", async (_req, res) => {
     try {
-      const { getAllDatabases } = await import("./moodle-client");
+      const { getAllDatabases } = await import("./moodle-api");
       const databases = await getAllDatabases();
       res.json(databases);
     } catch (error) {
@@ -846,7 +846,7 @@ export async function registerRoutes(
 
   app.get("/api/workshop/:cmid", async (req, res) => {
     try {
-      const { getWorkshopInfo } = await import("./moodle-client");
+      const { getWorkshopInfo } = await import("./moodle-api");
       const workshop = await getWorkshopInfo(req.params.cmid);
       if (!workshop) {
         return res.status(404).json({ error: "Workshop not found" });
@@ -859,7 +859,7 @@ export async function registerRoutes(
 
   app.get("/api/workshops", async (_req, res) => {
     try {
-      const { getAllWorkshops } = await import("./moodle-client");
+      const { getAllWorkshops } = await import("./moodle-api");
       const workshops = await getAllWorkshops();
       res.json(workshops);
     } catch (error) {
@@ -871,7 +871,7 @@ export async function registerRoutes(
 
   app.get("/api/lti/:cmid", async (req, res) => {
     try {
-      const { getLtiInfo } = await import("./moodle-client");
+      const { getLtiInfo } = await import("./moodle-api");
       const lti = await getLtiInfo(req.params.cmid);
       if (!lti) {
         return res.status(404).json({ error: "LTI not found" });
@@ -884,7 +884,7 @@ export async function registerRoutes(
 
   app.get("/api/lti/:ltiId/launch", async (req, res) => {
     try {
-      const { getLtiLaunchData } = await import("./moodle-client");
+      const { getLtiLaunchData } = await import("./moodle-api");
       const launchData = await getLtiLaunchData(req.params.ltiId);
       if (!launchData) {
         return res.status(404).json({ error: "LTI launch data not found" });
@@ -899,7 +899,7 @@ export async function registerRoutes(
 
   app.get("/api/book/:cmid", async (req, res) => {
     try {
-      const { getBookContent } = await import("./moodle-client");
+      const { getBookContent } = await import("./moodle-api");
       const book = await getBookContent(req.params.cmid);
       if (!book) {
         return res.status(404).json({ error: "Book not found" });
@@ -912,7 +912,7 @@ export async function registerRoutes(
 
   app.get("/api/books", async (_req, res) => {
     try {
-      const { getAllBooks } = await import("./moodle-client");
+      const { getAllBooks } = await import("./moodle-api");
       const books = await getAllBooks();
       res.json(books);
     } catch (error) {
@@ -924,7 +924,7 @@ export async function registerRoutes(
 
   app.get("/api/page/:cmid", async (req, res) => {
     try {
-      const { getPageContent } = await import("./moodle-client");
+      const { getPageContent } = await import("./moodle-api");
       const page = await getPageContent(req.params.cmid);
       if (!page) {
         return res.status(404).json({ error: "Page not found" });
@@ -937,7 +937,7 @@ export async function registerRoutes(
 
   app.get("/api/pages", async (_req, res) => {
     try {
-      const { getAllPages } = await import("./moodle-client");
+      const { getAllPages } = await import("./moodle-api");
       const pages = await getAllPages();
       res.json(pages);
     } catch (error) {
@@ -949,7 +949,7 @@ export async function registerRoutes(
 
   app.get("/api/resource/:cmid", async (req, res) => {
     try {
-      const { getResourceContent } = await import("./moodle-client");
+      const { getResourceContent } = await import("./moodle-api");
       const resource = await getResourceContent(req.params.cmid);
       if (!resource) {
         return res.status(404).json({ error: "Resource not found" });
@@ -962,7 +962,7 @@ export async function registerRoutes(
 
   app.get("/api/resources", async (_req, res) => {
     try {
-      const { getAllResources } = await import("./moodle-client");
+      const { getAllResources } = await import("./moodle-api");
       const resources = await getAllResources();
       res.json(resources);
     } catch (error) {
@@ -974,7 +974,7 @@ export async function registerRoutes(
 
   app.get("/api/url/:cmid", async (req, res) => {
     try {
-      const { getUrlContent } = await import("./moodle-client");
+      const { getUrlContent } = await import("./moodle-api");
       const urlContent = await getUrlContent(req.params.cmid);
       if (!urlContent) {
         return res.status(404).json({ error: "URL not found" });
@@ -987,7 +987,7 @@ export async function registerRoutes(
 
   app.get("/api/urls", async (_req, res) => {
     try {
-      const { getAllUrls } = await import("./moodle-client");
+      const { getAllUrls } = await import("./moodle-api");
       const urls = await getAllUrls();
       res.json(urls);
     } catch (error) {
@@ -999,7 +999,7 @@ export async function registerRoutes(
 
   app.get("/api/all-activities", async (_req, res) => {
     try {
-      const moodleClient = await import("./moodle-client");
+      const moodleClient = await import("./moodle-api");
       
       const [
         quizzes,
@@ -1040,23 +1040,23 @@ export async function registerRoutes(
       ]);
       
       res.json({
-        quizzes: quizzes.map(q => ({ ...q, modname: "quiz" })),
-        assignments: assignments.map(a => ({ ...a, modname: "assign" })),
-        forums: forums.map(f => ({ ...f, modname: "forum" })),
-        lessons: lessons.map(l => ({ ...l, modname: "lesson" })),
-        scorms: scorms.map(s => ({ ...s, modname: "scorm" })),
-        h5pactivities: h5pactivities.map(h => ({ ...h, modname: "h5pactivity" })),
-        wikis: wikis.map(w => ({ ...w, modname: "wiki" })),
-        glossaries: glossaries.map(g => ({ ...g, modname: "glossary" })),
-        folders: folders.map(f => ({ ...f, modname: "folder" })),
-        choices: choices.map(c => ({ ...c, modname: "choice" })),
-        feedbacks: feedbacks.map(f => ({ ...f, modname: "feedback" })),
-        databases: databases.map(d => ({ ...d, modname: "data" })),
-        workshops: workshops.map(w => ({ ...w, modname: "workshop" })),
-        books: books.map(b => ({ ...b, modname: "book" })),
-        pages: pages.map(p => ({ ...p, modname: "page" })),
-        resources: resources.map(r => ({ ...r, modname: "resource" })),
-        urls: urls.map(u => ({ ...u, modname: "url" })),
+        quizzes: quizzes.map((q: any) => ({ ...q, modname: "quiz" })),
+        assignments: assignments.map((a: any) => ({ ...a, modname: "assign" })),
+        forums: forums.map((f: any) => ({ ...f, modname: "forum" })),
+        lessons: lessons.map((l: any) => ({ ...l, modname: "lesson" })),
+        scorms: scorms.map((s: any) => ({ ...s, modname: "scorm" })),
+        h5pactivities: h5pactivities.map((h: any) => ({ ...h, modname: "h5pactivity" })),
+        wikis: wikis.map((w: any) => ({ ...w, modname: "wiki" })),
+        glossaries: glossaries.map((g: any) => ({ ...g, modname: "glossary" })),
+        folders: folders.map((f: any) => ({ ...f, modname: "folder" })),
+        choices: choices.map((c: any) => ({ ...c, modname: "choice" })),
+        feedbacks: feedbacks.map((f: any) => ({ ...f, modname: "feedback" })),
+        databases: databases.map((d: any) => ({ ...d, modname: "data" })),
+        workshops: workshops.map((w: any) => ({ ...w, modname: "workshop" })),
+        books: books.map((b: any) => ({ ...b, modname: "book" })),
+        pages: pages.map((p: any) => ({ ...p, modname: "page" })),
+        resources: resources.map((r: any) => ({ ...r, modname: "resource" })),
+        urls: urls.map((u: any) => ({ ...u, modname: "url" })),
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to get all activities" });
