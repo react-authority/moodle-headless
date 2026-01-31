@@ -5,6 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import type { Course } from "@shared/schema";
 
+function stripHtml(html: string): string {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return doc.body.textContent || "";
+}
+
 interface CourseCardProps {
   course: Course;
 }
@@ -13,6 +18,7 @@ export function CourseCard({ course }: CourseCardProps) {
   const [, setLocation] = useLocation();
   const progressValue = course.progress ?? 0;
   const isCompleted = progressValue >= 100;
+  const summaryText = course.summary ? stripHtml(course.summary) : "No description available";
 
   const handleClick = () => {
     setLocation(`/courses/${course.id}`);
@@ -59,7 +65,7 @@ export function CourseCard({ course }: CourseCardProps) {
           {course.fullname}
         </h3>
         <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-          {course.summary || "No description available"}
+          {summaryText}
         </p>
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
           {course.teachername && (
